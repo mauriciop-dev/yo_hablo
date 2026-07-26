@@ -1,0 +1,368 @@
+================================================================================
+DOCUMENTO DE ESPECIFICACIÓN DEL PROYECTO: YO HABLO
+================================================================================
+
+1. VISIÓN GENERAL
+--------------------------------------------------------------------------------
+Nombre: Yo Hablo
+Tipo: Web App / Progressive Web App (PWA) instalable
+Propósito: Plataforma voice-first de aprendizaje de Inglés y Alemán
+Público: Mariana, Mauricio, Invitados
+
+Stack actual (en ejecución):
+- Frontend: React 19 + TypeScript + Vite 6 + Tailwind CSS 4 + motion (Framer)
+- Backend: Express + ws (WebSocket) + @google/genai SDK
+- Base de datos: Supabase (PostgreSQL + RLS + Google OAuth) — pendiente de conectar
+- AI primaria: Google Gemini Flash (texto) + Gemini Live API (audio bidireccional WebSocket)
+- Despliegue: GitHub (mauriciop-dev/yo_hablo.git) -> Vercel
+
+
+2. USUARIOS Y CONTROL DE ACCESO
+--------------------------------------------------------------------------------
+Perfiles de usuario:
+
+  Perfil       | Acceso              | Auth
+  -------------|---------------------|-------------------
+  Mariana      | Completo + Admin    | Google OAuth
+  Mauricio     | Completo + Admin    | Google OAuth
+  Invitado     | Limitado (3 sesiones) | Ninguna
+
+Flujo de invitado:
+- Hasta 3 sesiones gratuitas para explorar la plataforma.
+- Al 3er ingreso, el sistema bloquea y muestra formulario de solicitud.
+- La solicitud queda registrada en la tabla `guest_requests` con status "pending".
+- Los administradores (Mariana/Mauricio) aprueban o rechazan desde el panel /admin.
+- Al aprobar, el invitado recibe acceso completo (role actualizado a 'user').
+
+Panel de Administración:
+- Ruta protegida /admin accesible solo para usuarios con role = 'admin'.
+- Funcionalidades:
+  * Lista de solicitudes de invitados (pendientes, aprobadas, rechazadas)
+  * Aprobar / rechazar solicitudes
+  * Ver usuarios registrados
+  * Estadísticas básicas de uso
+
+
+3. ARQUITECTURA DE AGENTES DE IA Y PIPELINE DE VOZ
+--------------------------------------------------------------------------------
+3.1. Roles de Agentes
+
+  Agente Tutor (Aura - Copiloto de plataforma):
+  - Se activa al iniciar sesión.
+  - Saludo contextual con voz: "Hola [Nombre], ¿cómo estás? En tu última
+    sesión trabajamos en [Habilidad/Nivel]. ¿Quieres continuar?"
+  - Guía al usuario por la plataforma, sugiere qué practicar.
+  - Implementado como chat de texto (Gemini Flash) + voz (Web Speech API).
+
+  Agente Profesor (Instructor de contenido):
+  - Se activa al entrar a una lección o ejercicio.
+  - Explica instrucciones, evalúa respuestas, da feedback.
+  - Sincroniza voz con elementos visuales en pantalla.
+  - Implementado como Gemini Live (audio bidireccional) para speaking/listening,
+    y como chat de texto con evaluación para writing/reading.
+
+3.2. Pipeline de Voz (Capas de Abstracción)
+
+  Capa STT (Speech-to-Text):
+    Primario: Gemini Live API (reconocimiento integrado en el stream)
+    Fallback 1: Groq / Whisper (API HTTP)
+    Fallback 2: Web Speech API (SpeechRecognition nativo del navegador)
+
+  Capa LLM (Lógica y Contenido):
+    Primario: Gemini 2.0 Flash (texto) / Gemini Live (audio)
+    Fallback 1: DeepSeek (API HTTP)
+    Fallback 2: Kimi (API HTTP)
+
+  Capa TTS (Text-to-Speech):
+    Primario: ElevenLabs API (voces de alta calidad, 3 voces seleccionables)
+    Fallback 1: Gemini Live (voz incluida en el stream)
+    Fallback 2: Web Speech API (speechSynthesis nativo del navegador)
+    Fallback 3: Local TTS (respaldo offline ligero)
+
+3.3. Proveedores y API Keys
+
+  Variable              | Propósito
+  ----------------------|-----------------------------------------------
+  GEMINI_API_KEY        | Gemini Flash (texto) + Gemini Live (audio)
+  GROQ_API_KEY          | STT fallback (Whisper via Groq)
+  DEEPSEEK_API_KEY      | LLM fallback
+  ELEVEN_LABS_API_KEY   | TTS primario (voces de alta calidad)
+  KIMI_API_KEY          | LLM fallback adicional
+
+3.4. Recomendación Técnica: Frameworks de Agentes
+
+  Opción recomendada: USAR EL SERVIDOR EXISTENTE COMO ORQUESTADOR
+  - El Express/server.ts actual ya funciona con Gemini.
+  - A corto plazo: añadir Supabase al Express para auth y DB.
+  - A medio plazo: migrar solo los endpoints REST a Supabase Edge Functions
+    (Deno). El WebSocket de Gemini Live se queda en Express o migra a un
+    servicio independiente.
+
+  NO se recomienda Google ADK por ahora (demasiado abstracto para este
+  alcance). Tampoco Vercel AI SDK (añade complejidad innecesaria cuando
+  ya tenemos Express funcionando).
+
+
+4. ESTRUCTURA PEDAGÓGICA Y MÓDULOS
+--------------------------------------------------------------------------------
+4.1. Habilidades (4 tarjetas)
+- Speaking (énfasis principal, vía Gemini Live)
+- Listening (énfasis principal, vía Gemini Live)
+- Writing (texto con feedback de IA)
+- Reading (textos generados con preguntas)
+
+4.2. Niveles (Marco Europeo CEFR)
+Cada habilidad tiene: A1, A2, B1, B2, C1
+Progresión: todos empiezan en A1. Niveles superiores se desbloquean al
+aprobar la prueba final del nivel anterior (nota >= 80%).
+
+4.3. Contenido de cada Nivel
+- Prueba diagnóstica de inicio (lesson_number = 0, is_assessment = TRUE)
+- 10 lecciones progresivas (lesson_number 1-10)
+  * Cada lección contiene 3-5 ejercicios
+  * Tipos de ejercicio: voice, text, multiple_choice, fill_blank,
+    translation, listening, speaking, reading, writing
+- Prueba final de nivel (lesson_number = 11, is_assessment = TRUE)
+- Criterio: todas las actividades se aprueban con >= 80%
+- Repetible indefinidamente
+
+
+5. ESQUEMA COMPLETO DE BASE DE DATOS (Supabase PostgreSQL)
+--------------------------------------------------------------------------------
+
+-- 5.1. Usuarios y Control de Invitados
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT UNIQUE NOT NULL,
+  name TEXT,
+  role TEXT CHECK (role IN ('admin', 'user', 'guest')) DEFAULT 'user',
+  guest_sessions_count INT DEFAULT 0,
+  approved_by_admin BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 5.2. Configuración Personalizada por Usuario
+CREATE TABLE user_settings (
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  target_language TEXT CHECK (target_language IN ('en', 'de')) DEFAULT 'en',
+  tutor_voice_id TEXT,
+  teacher_voice_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (user_id)
+);
+
+-- 5.3. Solicitudes de Invitados (Admin Flow)
+CREATE TABLE guest_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  guest_email TEXT,
+  guest_name TEXT,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  message TEXT,
+  requested_at TIMESTAMPTZ DEFAULT now(),
+  reviewed_by UUID REFERENCES users(id),
+  reviewed_at TIMESTAMPTZ
+);
+
+-- 5.4. Catálogo de Idiomas
+CREATE TABLE languages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  native_name TEXT NOT NULL
+);
+
+-- 5.5. Habilidades
+CREATE TABLE skills (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  icon TEXT
+);
+
+-- 5.6. Niveles CEFR
+CREATE TABLE levels (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  sort_order INT NOT NULL
+);
+
+-- 5.7. Lecciones (contenido pedagógico)
+CREATE TABLE lessons (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  language TEXT NOT NULL,
+  skill TEXT NOT NULL CHECK (skill IN ('speaking','listening','writing','reading')),
+  level TEXT NOT NULL CHECK (level IN ('A1','A2','B1','B2','C1')),
+  lesson_number INT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  is_assessment BOOLEAN DEFAULT FALSE,
+  assessment_type TEXT CHECK (assessment_type IN ('diagnostic','final', NULL)),
+  passing_score INT DEFAULT 80,
+  UNIQUE(language, skill, level, lesson_number)
+);
+
+-- 5.8. Ejercicios
+CREATE TABLE exercises (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lesson_id UUID REFERENCES lessons(id) ON DELETE CASCADE,
+  exercise_number INT NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('voice','text','multiple_choice',
+    'fill_blank','translation','listening','speaking','reading','writing')),
+  instructions TEXT NOT NULL,
+  prompt JSONB,
+  options JSONB,
+  correct_answer JSONB,
+  max_score INT DEFAULT 100,
+  hints JSONB,
+  UNIQUE(lesson_id, exercise_number)
+);
+
+-- 5.9. Progreso del Usuario
+CREATE TABLE progress (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  language TEXT NOT NULL,
+  skill TEXT CHECK (skill IN ('speaking','listening','writing','reading')),
+  level TEXT CHECK (level IN ('A1','A2','B1','B2','C1')),
+  lesson_id INT NOT NULL,
+  score INT DEFAULT 0,
+  completed BOOLEAN DEFAULT FALSE,
+  attempts INT DEFAULT 1,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 5.10. Intentos de Ejercicios (granular)
+CREATE TABLE exercise_attempts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  exercise_id UUID REFERENCES exercises(id) ON DELETE CASCADE,
+  score INT DEFAULT 0,
+  answer JSONB,
+  feedback TEXT,
+  voice_url TEXT,
+  completed BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 5.11. Catálogo de Voces
+CREATE TABLE voices (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  provider TEXT NOT NULL CHECK (provider IN ('elevenlabs','gemini','web_speech','local')),
+  voice_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  gender TEXT CHECK (gender IN ('male','female','neutral')),
+  language TEXT NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  priority INT DEFAULT 0,
+  preview_url TEXT,
+  UNIQUE(provider, voice_id)
+);
+
+-- 5.12. Historial de Sesiones de Voz
+CREATE TABLE voice_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  session_type TEXT CHECK (session_type IN ('live','recorded','fallback')),
+  provider TEXT NOT NULL,
+  duration_seconds INT DEFAULT 0,
+  status TEXT DEFAULT 'completed',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+
+6. CATÁLOGO DE VOCES (Catálogo inicial de 3 voces)
+--------------------------------------------------------------------------------
+Las voces se definen en la tabla `voices` y son seleccionables desde el
+Modal de Configuración por el usuario.
+
+  Prioridad | Proveedor   | Voice ID  | Nombre  | Género | Idioma
+  ----------|-------------|-----------|---------|--------|--------
+  1         | elevenlabs  | [ID1]     | Rachel  | female | en, de
+  2         | elevenlabs  | [ID2]     | Adam    | male   | en
+  3         | elevenlabs  | [ID3]     | [voz]   | female | de
+  Fallback  | gemini      | Zephyr    | Zephyr  | female | en, de
+  Fallback  | web_speech  | native    | Voz del | varies | en, de
+            |             |           | sistema |        |
+
+*Nota: Los voice_id de ElevenLabs se obtienen de la API de ElevenLabs
+(voz predefinida o clonada). El catálogo se poblará al configurar la
+cuenta de ElevenLabs.*
+
+
+7. INTERFAZ DE USUARIO Y EXPERIENCIA (UI/UX)
+--------------------------------------------------------------------------------
+7.1. Pantallas
+
+  Login: 3 botones de acceso rápido ("Mariana", "Mauricio", "Invitado")
+  Dashboard: 4 tarjetas de habilidad con indicadores de progreso
+  Chat Tutor: Conversación viva con Aura (texto + voz)
+  Lectura Asistida: Texto generado + vocabulario + preguntas
+  Escritura Asistida: Editor + feedback correctivo
+  Configuración (Modal): Idioma destino, selección de voces
+  Admin (/admin): Gestión de invitados, estadísticas
+
+7.2. Componentes visuales clave
+- Tarjetas con "recipiente que se llena" como indicador de progreso
+- Flecha indicadora de última sesión
+- Gráfica de progreso por habilidad
+- Estadísticas globales (racha, sesiones, etc.)
+
+
+8. CONFIGURACIÓN PWA
+--------------------------------------------------------------------------------
+- Librería: vite-plugin-pwa (basado en Workbox)
+- Manifest: nombre "Yo Hablo", íconos, tema emerald
+- Service Worker: precache del app shell, estrategia NetworkFirst para API
+- iOS: meta tags para apple-mobile-web-app-capable, manejo de audio context
+- Offline: pantalla de "sin conexión" para funcionalidades de voz
+
+
+9. VARIABLES DE ENTORNO (.env)
+--------------------------------------------------------------------------------
+  GEMINI_API_KEY=           # Google Gemini (obligatorio)
+  GROQ_API_KEY=             # Groq/Whisper STT fallback
+  DEEPSEEK_API_KEY=         # LLM fallback
+  ELEVEN_LABS_API_KEY=      # TTS primario ElevenLabs
+  KIMI_API_KEY=             # LLM fallback adicional
+  SUPABASE_URL=             # URL del proyecto Supabase
+  SUPABASE_ANON_KEY=        # Anon key de Supabase
+  SUPABASE_SERVICE_KEY=     # Service role key (solo server)
+  VITE_SUPABASE_URL=        # Misma URL para el frontend
+  VITE_SUPABASE_ANON_KEY=   # Misma anon key para el frontend
+
+
+10. ESTRUCTURA DE CARPETAS (objetivo)
+--------------------------------------------------------------------------------
+  idiomas/
+  ├── .env
+  ├── package.json
+  ├── vite.config.ts
+  ├── tsconfig.json
+  ├── server.ts                    # Express + WebSocket + Gemini
+  ├── src/
+  │   ├── main.tsx                 # Entry point
+  │   ├── App.tsx                  # Componente principal
+  │   ├── index.css                # Estilos globales
+  │   ├── types.ts                 # Tipos compartidos
+  │   ├── lib/
+  │   │   ├── supabase.ts          # Cliente Supabase
+  │   │   ├── ai.ts                # Abstracción de proveedores AI
+  │   │   └── voices.ts            # Gestión de voces
+  │   ├── components/
+  │   │   ├── Dashboard.tsx
+  │   │   ├── TutorChat.tsx
+  │   │   ├── ReadingExercise.tsx
+  │   │   ├── WritingExercise.tsx
+  │   │   ├── AdminPanel.tsx
+  │   │   ├── SettingsModal.tsx
+  │   │   └── LoginScreen.tsx
+  │   └── hooks/
+  │       ├── useVoice.ts          # Hook de voz/audio
+  │       └── useProgress.ts       # Hook de progreso
+  ├── supabase/
+  │   └── migrations/              # Migraciones SQL
+  └── public/
+      ├── manifest.json
+      └── icons/                   # Íconos PWA

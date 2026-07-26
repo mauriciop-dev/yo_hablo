@@ -1,0 +1,11 @@
+[auth]
+enabled = true
+
+[auth.external]
+enabled = true
+
+[auth.external.google]
+enabled = true
+client_id = ""
+secret = ""
+redirect_uri = "https://owkfrpuydxwznqxibgng.supabase.co/auth/v1/callback"

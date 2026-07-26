@@ -1,0 +1,6 @@
+{
+  "name": "Live Language Tutor",
+  "description": "An interactive live AI language tutoring web app with voice, chat, customized profiles, and multi-skill practice (Conversation, Listening, Reading, Writing).",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
