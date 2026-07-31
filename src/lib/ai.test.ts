@@ -73,7 +73,7 @@ describe('AIProvider', () => {
   });
 
   describe('synthesize', () => {
-    it('calls ElevenLabs endpoint and returns object URL', async () => {
+    it('calls Deepgram endpoint and returns object URL', async () => {
       const blob = new Blob(['audio-data'], { type: 'audio/mpeg' });
       (global.fetch as any).mockResolvedValue({
         ok: true,
@@ -84,7 +84,7 @@ describe('AIProvider', () => {
       const result = await provider.synthesize('Hello', 'voice1', 'English');
       expect(result).toBe('blob:audio-url');
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/tts/elevenlabs'),
+        expect.stringContaining('/api/tts/deepgram'),
         expect.objectContaining({
           method: 'POST',
           body: expect.stringContaining('Hello'),

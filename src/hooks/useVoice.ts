@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { ai } from '../lib/ai';
 
 export function useVoice(language: string, level: string) {
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -11,10 +12,11 @@ export function useVoice(language: string, level: string) {
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const audioElRef = useRef<HTMLAudioElement | null>(null);
 
   const langTag = language === 'German' ? 'de-DE' : 'en-US';
 
-  const speakText = useCallback((text: string) => {
+  const speakWithWebSpeech = useCallback((text: string) => {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
@@ -26,7 +28,36 @@ export function useVoice(language: string, level: string) {
     window.speechSynthesis.speak(utterance);
   }, [langTag, level]);
 
+  const speakText = useCallback((text: string) => {
+    if (!text) return;
+    setIsSpeaking(true);
+    ai.synthesize(text, '', langTag)
+      .then((url) => {
+        const audio = new Audio(url);
+        audioElRef.current = audio;
+        audio.onended = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(url);
+        };
+        audio.onerror = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(url);
+          speakWithWebSpeech(text);
+        };
+        audio.play().catch(() => {
+          setIsSpeaking(false);
+          speakWithWebSpeech(text);
+        });
+      })
+      .catch(() => {
+        setIsSpeaking(false);
+        speakWithWebSpeech(text);
+      });
+  }, [speakWithWebSpeech]);
+
   const stopSpeech = useCallback(() => {
+    audioElRef.current?.pause();
+    audioElRef.current = null;
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);

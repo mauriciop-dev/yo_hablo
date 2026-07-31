@@ -1,13 +1,13 @@
 const AI_BASE = '';
 
 type STTProvider = 'gemini-live' | 'groq' | 'web-speech';
-type TTSProvider = 'elevenlabs' | 'gemini' | 'web-speech' | 'local';
+type TTSProvider = 'elevenlabs' | 'deepgram' | 'gemini' | 'web-speech' | 'local';
 type LLMProvider = 'gemini' | 'deepseek' | 'kimi' | 'zai';
 
 export class AIProvider {
   private sttPrimary: STTProvider = 'gemini-live';
   private sttFallback: STTProvider = 'groq';
-  private ttsPrimary: TTSProvider = 'elevenlabs';
+  private ttsPrimary: TTSProvider = 'deepgram';
   private ttsFallback: TTSProvider = 'web-speech';
   private llmPrimary: LLMProvider = 'gemini';
   private llmFallback: LLMProvider = 'zai';
@@ -78,6 +78,16 @@ export class AIProvider {
   }
 
   private async synthesizeWith(provider: TTSProvider, text: string, voiceId: string, language: string): Promise<string> {
+    if (provider === 'deepgram') {
+      const res = await fetch(`${AI_BASE}/api/tts/deepgram`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, voiceId, language }),
+      });
+      if (!res.ok) throw new Error('Deepgram TTS failed');
+      const blob = await res.blob();
+      return URL.createObjectURL(blob);
+    }
     if (provider === 'elevenlabs') {
       const res = await fetch(`${AI_BASE}/api/tts/elevenlabs`, {
         method: 'POST',
