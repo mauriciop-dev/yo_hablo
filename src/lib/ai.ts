@@ -14,10 +14,10 @@ export class AIProvider {
 
   async transcribe(audio: Blob, language: string): Promise<string> {
     try {
-      return await this.transcribeWith(this.sttPrimary, audio, language);
+      return await withTimeout(this.transcribeWith(this.sttPrimary, audio, language), 30000);
     } catch {
       try {
-        return await this.transcribeWith(this.sttFallback, audio, language);
+        return await withTimeout(this.transcribeWith(this.sttFallback, audio, language), 20000);
       } catch {
         throw new Error('All STT providers failed');
       }
@@ -67,7 +67,7 @@ export class AIProvider {
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
         if (!SpeechRecognition) return reject(new Error('Web Speech not supported'));
         const recognition = new SpeechRecognition();
-        recognition.lang = language === 'German' ? 'de-DE' : 'en-US';
+        recognition.lang = language;
         recognition.interimResults = false;
         recognition.onresult = (event: any) => resolve(event.results[0][0].transcript);
         recognition.onerror = () => reject(new Error('Web Speech error'));
@@ -148,6 +148,16 @@ export class AIProvider {
     }
     throw new Error(`LLM provider ${provider} not supported via this method`);
   }
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Timeout')), ms);
+    promise.then(
+      (val) => { clearTimeout(timer); resolve(val); },
+      (err) => { clearTimeout(timer); reject(err); },
+    );
+  });
 }
 
 export const ai = new AIProvider();

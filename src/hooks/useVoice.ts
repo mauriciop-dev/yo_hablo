@@ -171,17 +171,21 @@ export function useVoice(language: string, level: string, selectedVoiceId: strin
         recorder.onstop = () => {
           setIsListening(false);
           const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
-          ai.transcribe(blob, language)
+          ai.transcribe(blob, langTag)
             .then((text) => {
               if (text && text.trim()) onResultRef.current(text.trim());
+              else onResultRef.current('No se detectó voz. Intenta de nuevo.');
             })
-            .catch((err) => console.error('STT error:', err));
+            .catch((err) => {
+              console.error('STT error:', err);
+              onResultRef.current('Error al transcribir. Verifica el micrófono e intenta de nuevo.');
+            });
         };
         recorder.start();
         setIsListening(true);
       })
       .catch((err) => console.error('Mic error:', err));
-  }, [language, isListening]);
+  }, [langTag, isListening]);
 
   const stopListening = useCallback(() => {
     const recorder = mediaRecorderRef.current;
