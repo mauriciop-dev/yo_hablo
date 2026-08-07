@@ -510,7 +510,7 @@ app.post('/api/tts/elevenlabs', async (req, res) => {
         },
         body: JSON.stringify({
           text,
-          model_id: 'eleven_monolingual_v1',
+          model_id: 'eleven_multilingual_v2',
           voice_settings: { stability: 0.5, similarity_boost: 0.5 },
         }),
       },
@@ -527,6 +527,81 @@ app.post('/api/tts/elevenlabs', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// ===== GEMINI TTS ENDPOINT =====
+app.post('/api/tts/gemini', async (req, res) => {
+  try {
+    const { text, voiceId, language } = req.body;
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
+
+    const voiceName = voiceId || 'Kore';
+    const langCode = (language || 'en-US').toLowerCase() === 'de-de' ? 'de-de' : 'en-us';
+    const body = {
+      contents: [{ parts: [{ text }] }],
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        speechConfig: {
+          languageCode: langCode,
+          voiceConfig: {
+            prebuiltVoiceConfig: { voiceName },
+          },
+        },
+      },
+    };
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-tts-preview:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      },
+    );
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Gemini TTS error ${response.status}: ${errText}`);
+    }
+    const data = await response.json();
+    const inline = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+    if (!inline?.data) throw new Error('Gemini TTS: no audio in response');
+    const pcm = Buffer.from(inline.data, 'base64');
+    const mime: string = inline.mimeType || 'audio/l16;rate=24000';
+    if (mime.includes('l16') || mime.includes('pcm')) {
+      const rateMatch = mime.match(/rate=(\d+)/);
+      const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
+      res.set('Content-Type', 'audio/wav');
+      res.send(wavFromPcm(pcm, sampleRate));
+    } else {
+      res.set('Content-Type', mime);
+      res.send(pcm);
+    }
+  } catch (error: any) {
+    console.error('Gemini TTS error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+function wavFromPcm(pcm: Buffer, sampleRate: number): Buffer {
+  const numChannels = 1;
+  const bitsPerSample = 16;
+  const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+  const blockAlign = numChannels * (bitsPerSample / 8);
+  const header = Buffer.alloc(44);
+  header.write('RIFF', 0, 'ascii');
+  header.writeUInt32LE(36 + pcm.length, 4);
+  header.write('WAVE', 8, 'ascii');
+  header.write('fmt ', 12, 'ascii');
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(numChannels, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(byteRate, 28);
+  header.writeUInt16LE(blockAlign, 32);
+  header.writeUInt16LE(bitsPerSample, 34);
+  header.write('data', 36, 'ascii');
+  header.writeUInt32LE(pcm.length, 40);
+  return Buffer.concat([header, pcm]);
+}
 
 // ===== GROQ STT ENDPOINT =====
 app.post('/api/stt/groq', upload.single('audio'), async (req, res) => {

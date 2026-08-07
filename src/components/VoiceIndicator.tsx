@@ -4,15 +4,13 @@ import { Mic, MicOff, Volume2 } from 'lucide-react';
 interface VoiceIndicatorProps {
   isListening: boolean;
   isSpeaking: boolean;
-  isLiveActive: boolean;
   onToggleMic: () => void;
   onStopSpeech?: () => void;
 }
 
 export default function VoiceIndicator({
-  isListening, isSpeaking, isLiveActive, onToggleMic, onStopSpeech
+  isListening, isSpeaking, onToggleMic, onStopSpeech
 }: VoiceIndicatorProps) {
-  if (isLiveActive) return null;
 
   return (
     <div className="flex items-center space-x-2">

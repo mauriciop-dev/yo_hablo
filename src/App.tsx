@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { UserProfile } from './types';
 import { supabase } from './lib/supabase';
-import { useVoice } from './hooks/useVoice';
+import { useVoice, VoiceSelection } from './hooks/useVoice';
 import LoginScreen from './components/LoginScreen';
 import TutorChat from './components/TutorChat';
 import ReadingExercise from './components/ReadingExercise';
@@ -21,6 +21,7 @@ import InstallPwaBanner from './components/InstallPwaBanner';
 import { useAppMode } from './hooks/useAppMode';
 import { useInstallPrompt } from './hooks/useInstallPrompt';
 import { schedulePlanReminder } from './lib/notifications';
+import { inferLevel } from './lib/skillTest';
 import { LessonData } from './data/lessons';
 
 const PRESET_PROFILES: UserProfile[] = [
@@ -68,8 +69,9 @@ export default function App() {
   const [profile, setProfile] = useState<UserProfile>(PRESET_PROFILES[0]);
   const [activeTab, setActiveTab] = useState<Tab>('tutor');
   const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const [selectedTutorVoice, setSelectedTutorVoice] = useState('');
+  const [selectedTutorVoice, setSelectedTutorVoice] = useState<VoiceSelection>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [onboarding, setOnboarding] = useState<{ completed: boolean; plan: any; skillLevels: any }>({ completed: true, plan: null, skillLevels: null });
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
@@ -91,6 +93,17 @@ export default function App() {
           plan: data.plan,
           skillLevels: data.skill_levels,
         });
+        if (data.onboarding_completed) {
+          setProfile((prev) => ({
+            ...prev,
+            targetLanguage: Array.isArray(data.selected_languages) && data.selected_languages.includes('German')
+              ? 'German'
+              : Array.isArray(data.selected_languages) && data.selected_languages.includes('English')
+                ? 'English'
+                : prev.targetLanguage,
+            level: data.skill_levels ? inferLevel(data.skill_levels) : prev.level,
+          }));
+        }
       }
     } catch (e) {
       console.warn('load onboarding failed', e);
@@ -159,6 +172,10 @@ export default function App() {
     completedLessons.size >= 1 ? ['first-steps'] : []
   );
 
+  const userProfiles = authUser
+    ? PRESET_PROFILES.filter(p => authUser.email ? p.email === authUser.email : p.isGuest)
+    : PRESET_PROFILES;
+
   if (checkingAuth) {
     return (
       <div className="min-h-screen bg-stone-50 flex items-center justify-center">
@@ -223,8 +240,9 @@ export default function App() {
               <Volume2 className="w-5 h-5" />
             </button>
 
-            <div className="relative group">
-              <button className="flex items-center space-x-2 p-1.5 pr-3 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 transition-all">
+            <div className="relative">
+              <button onClick={() => setProfileMenuOpen(o => !o)}
+                className="flex items-center space-x-2 p-1.5 pr-3 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 transition-all">
                 <div className={`w-8 h-8 rounded-lg ${profile.avatarColor} text-white flex items-center justify-center font-bold text-sm shadow-xs`}>
                   {profile.name.charAt(0)}
                 </div>
@@ -233,16 +251,21 @@ export default function App() {
                   <div className="text-[10px] text-stone-500">{authUser.email || 'Invitado'}</div>
                 </div>
               </button>
-              <div className="absolute right-0 mt-2 w-48 bg-white border border-stone-200 rounded-xl shadow-lg py-2 hidden group-hover:block z-50">
-                <button onClick={() => setSettingsOpen(true)}
-                  className="w-full text-left px-4 py-2 text-xs text-stone-700 hover:bg-stone-50">
-                  Configuración
-                </button>
-                <button onClick={handleLogout}
-                  className="w-full text-left px-4 py-2 text-xs text-rose-600 hover:bg-stone-50">
-                  Cerrar sesión
-                </button>
-              </div>
+              {profileMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setProfileMenuOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-stone-200 rounded-xl shadow-lg py-2 z-50">
+                    <button onClick={() => { setSettingsOpen(true); setProfileMenuOpen(false); }}
+                      className="w-full text-left px-4 py-2 text-xs text-stone-700 hover:bg-stone-50">
+                      Configuración
+                    </button>
+                    <button onClick={() => { handleLogout(); setProfileMenuOpen(false); }}
+                      className="w-full text-left px-4 py-2 text-xs text-rose-600 hover:bg-stone-50">
+                      Cerrar sesión
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -342,7 +365,7 @@ export default function App() {
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         currentProfile={profile}
-        profiles={PRESET_PROFILES}
+        profiles={userProfiles}
         onProfileChange={handleProfileChange}
         voiceEnabled={voiceEnabled}
         onVoiceToggle={setVoiceEnabled}

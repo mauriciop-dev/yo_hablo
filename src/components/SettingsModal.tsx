@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Globe, Volume2, CheckCircle, Mic, Play, Loader2 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { supabase } from '../lib/supabase';
+import { VoiceSelection } from '../hooks/useVoice';
 
 type Voice = {
   id: string;
@@ -29,8 +30,8 @@ interface SettingsModalProps {
   onProfileChange: (profile: UserProfile) => void;
   voiceEnabled: boolean;
   onVoiceToggle: (enabled: boolean) => void;
-  selectedTutorVoice: string;
-  onSelectTutorVoice: (voiceId: string) => void;
+  selectedTutorVoice: VoiceSelection;
+  onSelectTutorVoice: (voice: VoiceSelection) => void;
   voice: VoiceState;
   userId?: string;
 }
@@ -111,12 +112,19 @@ export default function SettingsModal({
           {voiceEnabled && (
             <div className="space-y-4">
               <div>
-                <label className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">Voz del Tutor (Aura)</label>
-                <select value={selectedTutorVoice} onChange={(e) => onSelectTutorVoice(e.target.value)}
+                <label className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">Voz del Tutor</label>
+                <select
+                  value={selectedTutorVoice ? `${selectedTutorVoice.provider}::${selectedTutorVoice.voice_id}` : ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (!val) { onSelectTutorVoice(null); return; }
+                    const [provider, voice_id] = val.split('::');
+                    onSelectTutorVoice({ provider, voice_id });
+                  }}
                   className="w-full mt-1 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
                   <option value="">Por defecto</option>
                   {filteredVoices.map(v => (
-                    <option key={v.id} value={v.voice_id}>{v.name} ({v.provider})</option>
+                    <option key={v.id} value={`${v.provider}::${v.voice_id}`}>{v.name} ({v.provider})</option>
                   ))}
                 </select>
                 <div className="mt-2 flex items-center space-x-2">

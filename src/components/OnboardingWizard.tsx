@@ -4,7 +4,7 @@ import {
   ArrowLeft, ArrowRight, BookOpen, Headphones, MessageSquare, PenTool,
 } from 'lucide-react';
 import { UserProfile } from '../types';
-import { useVoice } from '../hooks/useVoice';
+import { useVoice, VoiceSelection } from '../hooks/useVoice';
 import { supabase } from '../lib/supabase';
 import {
   generatePlan, Goal, OBJECTIVE_LABELS, OBJECTIVE_DESCRIPTIONS, TIMEFRAMES, SkillWeights,
@@ -34,7 +34,7 @@ export default function OnboardingWizard({ profile, accessToken, userId, onCompl
   const [languages, setLanguages] = useState<string[]>(['English']);
   const [goal, setGoal] = useState<Goal>({ objective: 'conversational', timeframeMonths: 6, languages: ['English'] });
   const [voices, setVoices] = useState<Voice[]>([]);
-  const [tutorVoice, setTutorVoice] = useState('');
+  const [tutorVoice, setTutorVoice] = useState<VoiceSelection>(null);
   const [micResult, setMicResult] = useState('');
   const [listening, setListening] = useState(false);
   const [questions, setQuestions] = useState<SkillQuestion[]>([]);
@@ -192,11 +192,18 @@ export default function OnboardingWizard({ profile, accessToken, userId, onCompl
             <div className="space-y-4">
               <div>
                 <label className="text-xs font-semibold text-stone-600 uppercase tracking-wider">Voz del tutor ({langTag})</label>
-                <select value={tutorVoice} onChange={(e) => setTutorVoice(e.target.value)}
+                <select
+                  value={tutorVoice ? `${tutorVoice.provider}::${tutorVoice.voice_id}` : ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (!val) { setTutorVoice(null); return; }
+                    const [provider, voice_id] = val.split('::');
+                    setTutorVoice({ provider, voice_id });
+                  }}
                   className="w-full mt-1 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
                   <option value="">Por defecto</option>
                   {voices.filter(v => v.language.split(',').includes(languages[0] === 'German' ? 'de' : 'en') || v.language === 'en,de')
-                    .map(v => <option key={v.id} value={v.voice_id}>{v.name} ({v.provider})</option>)}
+                    .map(v => <option key={v.id} value={`${v.provider}::${v.voice_id}`}>{v.name} ({v.provider})</option>)}
                 </select>
                 <button onClick={() => voice.speakText('Hola, esta es tu voz de tutora. ¡Vamos a aprender juntos!')}
                   className="mt-2 flex items-center space-x-1.5 px-3 py-1.5 bg-stone-100 hover:bg-emerald-50 text-stone-700 border border-stone-200 rounded-xl text-xs font-medium">

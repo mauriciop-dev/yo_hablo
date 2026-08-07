@@ -24,16 +24,28 @@ export class AIProvider {
     }
   }
 
-  async synthesize(text: string, voiceId: string, language: string): Promise<string> {
-    try {
-      return await this.synthesizeWith(this.ttsPrimary, text, voiceId, language);
-    } catch {
+  async synthesize(
+    text: string,
+    voice: { provider: string; voice_id: string } | null,
+    language: string,
+  ): Promise<string> {
+    const order: TTSProvider[] = [];
+    const seen = new Set<TTSProvider>();
+    const selected = voice?.provider as TTSProvider | undefined;
+    if (selected && selected !== 'web-speech') { order.push(selected); seen.add(selected); }
+    for (const p of ['deepgram', 'gemini', 'elevenlabs'] as TTSProvider[]) {
+      if (!seen.has(p)) { order.push(p); seen.add(p); }
+    }
+    let lastError: Error | null = null;
+    for (const provider of order) {
       try {
-        return await this.synthesizeWith(this.ttsFallback, text, voiceId, language);
-      } catch {
-        throw new Error('All TTS providers failed');
+        return await this.synthesizeWith(provider, text, voice?.voice_id || '', language);
+      } catch (e) {
+        lastError = e as Error;
+        console.warn(`TTS fallback: ${provider} failed ->`, e);
       }
     }
+    throw lastError || new Error('All TTS providers failed');
   }
 
   async generate(
@@ -55,7 +67,8 @@ export class AIProvider {
   private async transcribeWith(provider: STTProvider, audio: Blob, language: string): Promise<string> {
     if (provider === 'groq') {
       const form = new FormData();
-      form.append('audio', audio, 'recording.webm');
+      const isMp4 = /mp4|m4a/i.test(audio.type);
+      form.append('audio', audio, isMp4 ? 'recording.m4a' : 'recording.webm');
       form.append('language', language);
       const res = await fetch(`${AI_BASE}/api/stt/groq`, { method: 'POST', body: form });
       if (!res.ok) throw new Error('Groq STT failed');
@@ -85,6 +98,16 @@ export class AIProvider {
         body: JSON.stringify({ text, voiceId, language }),
       });
       if (!res.ok) throw new Error('Deepgram TTS failed');
+      const blob = await res.blob();
+      return URL.createObjectURL(blob);
+    }
+    if (provider === 'gemini') {
+      const res = await fetch(`${AI_BASE}/api/tts/gemini`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, voiceId, language }),
+      });
+      if (!res.ok) throw new Error('Gemini TTS failed');
       const blob = await res.blob();
       return URL.createObjectURL(blob);
     }

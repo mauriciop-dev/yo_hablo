@@ -73,7 +73,7 @@ describe('AIProvider', () => {
   });
 
   describe('synthesize', () => {
-    it('calls Deepgram endpoint and returns object URL', async () => {
+    it('calls Deepgram endpoint by default and returns object URL', async () => {
       const blob = new Blob(['audio-data'], { type: 'audio/mpeg' });
       (global.fetch as any).mockResolvedValue({
         ok: true,
@@ -81,7 +81,7 @@ describe('AIProvider', () => {
       });
       URL.createObjectURL = vi.fn(() => 'blob:audio-url');
 
-      const result = await provider.synthesize('Hello', 'voice1', 'English');
+      const result = await provider.synthesize('Hello', null, 'English');
       expect(result).toBe('blob:audio-url');
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/api/tts/deepgram'),
@@ -90,6 +90,36 @@ describe('AIProvider', () => {
           body: expect.stringContaining('Hello'),
         }),
       );
+    });
+
+    it('routes to the selected voice provider first (gemini)', async () => {
+      const blob = new Blob(['audio-data'], { type: 'audio/wav' });
+      (global.fetch as any).mockImplementation((url: string) => {
+        if (url.includes('/api/tts/gemini')) return Promise.resolve({ ok: true, blob: async () => blob });
+        if (url.includes('/api/tts/deepgram')) return Promise.resolve({ ok: true, blob: async () => blob });
+        return Promise.reject(new Error('unknown'));
+      });
+      URL.createObjectURL = vi.fn(() => 'blob:gemini-url');
+
+      const result = await provider.synthesize('Hallo', { provider: 'gemini', voice_id: 'Kore' }, 'German');
+      expect(result).toBe('blob:gemini-url');
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/tts/gemini'),
+        expect.objectContaining({ body: expect.stringContaining('Kore') }),
+      );
+    });
+
+    it('falls back to deepgram when the selected provider fails', async () => {
+      const blob = new Blob(['audio-data'], { type: 'audio/mpeg' });
+      (global.fetch as any).mockImplementation((url: string) => {
+        if (url.includes('/api/tts/gemini')) return Promise.reject(new Error('Gemini down'));
+        if (url.includes('/api/tts/deepgram')) return Promise.resolve({ ok: true, blob: async () => blob });
+        return Promise.reject(new Error('unknown'));
+      });
+      URL.createObjectURL = vi.fn(() => 'blob:deepgram-url');
+
+      const result = await provider.synthesize('Hello', { provider: 'gemini', voice_id: 'Kore' }, 'English');
+      expect(result).toBe('blob:deepgram-url');
     });
   });
 });

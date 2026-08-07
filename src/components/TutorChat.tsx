@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Sparkles, Award, Mic, MicOff } from 'lucide-react';
+import { Send, Sparkles, Award } from 'lucide-react';
 import { Message, UserProfile } from '../types';
 import VoiceIndicator from './VoiceIndicator';
 
@@ -9,11 +9,8 @@ interface TutorChatProps {
   voice: {
     isSpeaking: boolean;
     isListening: boolean;
-    isLiveActive: boolean;
     speakText: (text: string) => void;
     stopSpeech: () => void;
-    startLiveSession: (name: string) => Promise<any>;
-    stopLiveSession: () => void;
     startListening: (onResult: (text: string) => void) => void;
     stopListening: () => void;
   };
@@ -26,12 +23,17 @@ export default function TutorChat({ profile, voiceEnabled, voice, streakDays = 5
   const [loading, setLoading] = useState(false);
   const [suggestedReplies, setSuggestedReplies] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hasGreetedRef = useRef<string | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
   useEffect(() => {
+    if (hasGreetedRef.current === profile.id) return;
+    hasGreetedRef.current = profile.id;
+    setMessages([]);
+    setSuggestedReplies([]);
     initGreeting();
   }, [profile.id]);
 
@@ -39,11 +41,11 @@ export default function TutorChat({ profile, voiceEnabled, voice, streakDays = 5
     let greetingText = '';
     let suggestionList: string[] = [];
     if (profile.targetLanguage === 'German') {
-      greetingText = `Hallo ${profile.name}! ¡Qué gusto saludarte! ¿Cómo estás hoy? ¿Quieres que sigamos practicando alemán donde quedamos o prefieres trabajar otra habilidad?`;
-      suggestionList = ['Mir geht es sehr gut, danke!', 'Ich möchte gerne sprechen üben.', 'Was machen wir heute?'];
+      greetingText = `Hallo ${profile.name}! Schön, dass du hier bist. Ich bin Aura, deine Sprachlehrerin. Wollen wir heute mit einer Übung für das Niveau ${profile.level} starten?`;
+      suggestionList = ['Guten Tag! Ich bin bereit.', 'Wie läuft mein Fortschritt?', 'Was machen wir heute?'];
     } else {
-      greetingText = `Hi ${profile.name}! Great to see you today. How was your day? Are we ready to continue with English practice or do you want to focus on a new topic?`;
-      suggestionList = ['I am doing great, thank you!', 'I want to practice conversation.', 'What should we talk about today?'];
+      greetingText = `Hi ${profile.name}! Great to see you here. I'm Aura, your language tutor. Shall we start today with an exercise for ${profile.level} level?`;
+      suggestionList = ['Hello! I am ready to start.', 'How is my progress going?', 'What are we doing today?'];
     }
 
     setMessages([{
@@ -103,14 +105,6 @@ export default function TutorChat({ profile, voiceEnabled, voice, streakDays = 5
     }
   };
 
-  const handleLiveStart = () => {
-    voice.startLiveSession(profile.name);
-    setMessages(prev => [...prev, {
-      id: Date.now().toString(), role: 'assistant',
-      text: `🟢 Conectado a Gemini Live (Voz Real). ¡Habla con Aura en ${profile.targetLanguage}!`, timestamp: new Date()
-    }]);
-  };
-
   const handleMicToggle = () => {
     if (voice.isListening) {
       voice.stopListening();
@@ -134,22 +128,9 @@ export default function TutorChat({ profile, voiceEnabled, voice, streakDays = 5
         </div>
 
         <div className="flex items-center space-x-2">
-          {voice.isLiveActive ? (
-            <button onClick={voice.stopLiveSession}
-              className="flex items-center space-x-1.5 px-3 py-1.5 bg-rose-600 text-white rounded-xl text-xs font-medium shadow-sm transition-all hover:bg-rose-700">
-              <MicOff className="w-4 h-4" /><span>Gemini Live</span>
-            </button>
-          ) : (
-            <button onClick={handleLiveStart}
-              className="flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-medium transition-all shadow-sm">
-              <Mic className="w-4 h-4" /><span>Gemini Live</span>
-            </button>
-          )}
-
           <VoiceIndicator
             isListening={voice.isListening}
             isSpeaking={voice.isSpeaking}
-            isLiveActive={voice.isLiveActive}
             onToggleMic={handleMicToggle}
             onStopSpeech={voice.stopSpeech}
           />

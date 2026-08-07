@@ -1,7 +1,9 @@
 import { useState, useRef, useCallback } from 'react';
 import { ai } from '../lib/ai';
 
-export function useVoice(language: string, level: string, selectedVoiceId: string = '') {
+export type VoiceSelection = { provider: string; voice_id: string } | null;
+
+export function useVoice(language: string, level: string, selectedVoice: VoiceSelection = null) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isLiveActive, setIsLiveActive] = useState(false);
@@ -31,7 +33,7 @@ export function useVoice(language: string, level: string, selectedVoiceId: strin
   const speakText = useCallback((text: string) => {
     if (!text) return;
     setIsSpeaking(true);
-    ai.synthesize(text, selectedVoiceId, langTag)
+    ai.synthesize(text, selectedVoice, langTag)
       .then((url) => {
         const audio = new Audio(url);
         audioElRef.current = audio;
@@ -53,7 +55,7 @@ export function useVoice(language: string, level: string, selectedVoiceId: strin
         setIsSpeaking(false);
         speakWithWebSpeech(text);
       });
-  }, [speakWithWebSpeech, selectedVoiceId]);
+  }, [speakWithWebSpeech, selectedVoice]);
 
   const stopSpeech = useCallback(() => {
     audioElRef.current?.pause();
@@ -160,17 +162,27 @@ export function useVoice(language: string, level: string, selectedVoiceId: strin
     onResultRef.current = onResult;
     if (isListening) return;
 
-    if (!navigator.mediaDevices?.getUserMedia) return;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      onResult('Tu navegador no soporta grabación de micrófono.');
+      return;
+    }
     navigator.mediaDevices.getUserMedia({ audio: true })
       .then((stream) => {
         mediaStreamRef.current = stream;
         audioChunksRef.current = [];
-        const recorder = new MediaRecorder(stream);
+        const mimeType = pickRecorderMimeType();
+        const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
         mediaRecorderRef.current = recorder;
+        const startedAt = Date.now();
         recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
         recorder.onstop = () => {
           setIsListening(false);
+          const duration = Date.now() - startedAt;
           const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+          if (duration < 350 || blob.size < 1000) {
+            onResultRef.current('No se detectó voz. Mantén presionado y habla cerca del micrófono.');
+            return;
+          }
           ai.transcribe(blob, langTag)
             .then((text) => {
               if (text && text.trim()) onResultRef.current(text.trim());
@@ -184,7 +196,13 @@ export function useVoice(language: string, level: string, selectedVoiceId: strin
         recorder.start();
         setIsListening(true);
       })
-      .catch((err) => console.error('Mic error:', err));
+      .catch((err) => {
+        console.error('Mic error:', err);
+        const message = (err as any)?.name === 'NotAllowedError'
+          ? 'Permiso del micrófono denegado. Actívalo en tu navegador e intenta de nuevo.'
+          : 'No se pudo acceder al micrófono. Verifica tu dispositivo e intenta de nuevo.';
+        onResult(message);
+      });
   }, [langTag, isListening]);
 
   const stopListening = useCallback(() => {
@@ -203,6 +221,15 @@ export function useVoice(language: string, level: string, selectedVoiceId: strin
     isSpeaking, isListening, isLiveActive,
     speakText, stopSpeech, startLiveSession, stopLiveSession, startListening, stopListening, setIsLiveActive,
   };
+}
+
+function pickRecorderMimeType(): string | undefined {
+  const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/mp4;codecs=mp4a.40.2'];
+  if (typeof MediaRecorder === 'undefined') return undefined;
+  for (const mime of candidates) {
+    if (MediaRecorder.isTypeSupported(mime)) return mime;
+  }
+  return undefined;
 }
 
 function pcmToBase64(float32Array: Float32Array) {
