@@ -303,6 +303,8 @@ app.post('/api/stt/groq', upload.single('audio'), async (req, res) => {
     const groqForm = new FormData();
     groqForm.append('model', 'whisper-large-v3');
     groqForm.append('file', new Blob([req.file.buffer], { type: req.file.mimetype }), 'audio.webm');
+    const langHint = (req.body?.language || '').split('-')[0];
+    if (langHint) groqForm.append('language', langHint);
     const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
       method: 'POST', headers: { 'Authorization': `Bearer ${apiKey}` }, body: groqForm,
     });

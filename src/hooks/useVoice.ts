@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { ai } from '../lib/ai';
 
-export function useVoice(language: string, level: string) {
+export function useVoice(language: string, level: string, selectedVoiceId: string = '') {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isLiveActive, setIsLiveActive] = useState(false);
@@ -31,7 +31,7 @@ export function useVoice(language: string, level: string) {
   const speakText = useCallback((text: string) => {
     if (!text) return;
     setIsSpeaking(true);
-    ai.synthesize(text, '', langTag)
+    ai.synthesize(text, selectedVoiceId, langTag)
       .then((url) => {
         const audio = new Audio(url);
         audioElRef.current = audio;
@@ -53,7 +53,7 @@ export function useVoice(language: string, level: string) {
         setIsSpeaking(false);
         speakWithWebSpeech(text);
       });
-  }, [speakWithWebSpeech]);
+  }, [speakWithWebSpeech, selectedVoiceId]);
 
   const stopSpeech = useCallback(() => {
     audioElRef.current?.pause();
@@ -61,6 +61,13 @@ export function useVoice(language: string, level: string) {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
+    }
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.stop();
+      mediaRecorderRef.current = null;
+      mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+      mediaStreamRef.current = null;
     }
   }, []);
 
@@ -145,32 +152,52 @@ export function useVoice(language: string, level: string) {
     mediaStreamRef.current = null;
   }, []);
 
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const onResultRef = useRef<(transcript: string) => void>(() => {});
+
   const startListening = useCallback((onResult: (transcript: string) => void) => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
+    onResultRef.current = onResult;
+    if (isListening) return;
 
-    if (isListening) { setIsListening(false); return; }
+    if (!navigator.mediaDevices?.getUserMedia) return;
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then((stream) => {
+        mediaStreamRef.current = stream;
+        audioChunksRef.current = [];
+        const recorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = recorder;
+        recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+        recorder.onstop = () => {
+          setIsListening(false);
+          const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+          ai.transcribe(blob, language)
+            .then((text) => {
+              if (text && text.trim()) onResultRef.current(text.trim());
+            })
+            .catch((err) => console.error('STT error:', err));
+        };
+        recorder.start();
+        setIsListening(true);
+      })
+      .catch((err) => console.error('Mic error:', err));
+  }, [language, isListening]);
 
-    const recognition = new SpeechRecognition();
-    recognition.lang = langTag;
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-
-    recognition.onstart = () => setIsListening(true);
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
+  const stopListening = useCallback(() => {
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.stop();
+      mediaRecorderRef.current = null;
+      mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+      mediaStreamRef.current = null;
+    } else {
       setIsListening(false);
-      onResult(transcript);
-    };
-    recognition.onerror = () => setIsListening(false);
-    recognition.onend = () => setIsListening(false);
-
-    recognition.start();
-  }, [langTag, isListening]);
+    }
+  }, []);
 
   return {
     isSpeaking, isListening, isLiveActive,
-    speakText, stopSpeech, startLiveSession, stopLiveSession, startListening, setIsLiveActive,
+    speakText, stopSpeech, startLiveSession, stopLiveSession, startListening, stopListening, setIsLiveActive,
   };
 }
 

@@ -15,6 +15,7 @@ interface TutorChatProps {
     startLiveSession: (name: string) => Promise<any>;
     stopLiveSession: () => void;
     startListening: (onResult: (text: string) => void) => void;
+    stopListening: () => void;
   };
   streakDays?: number;
 }
@@ -112,7 +113,7 @@ export default function TutorChat({ profile, voiceEnabled, voice, streakDays = 5
 
   const handleMicToggle = () => {
     if (voice.isListening) {
-      voice.stopSpeech();
+      voice.stopListening();
     } else {
       voice.startListening((transcript) => sendMessage(transcript));
     }

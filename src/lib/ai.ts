@@ -5,8 +5,8 @@ type TTSProvider = 'elevenlabs' | 'deepgram' | 'gemini' | 'web-speech' | 'local'
 type LLMProvider = 'gemini' | 'deepseek' | 'kimi' | 'zai';
 
 export class AIProvider {
-  private sttPrimary: STTProvider = 'gemini-live';
-  private sttFallback: STTProvider = 'groq';
+  private sttPrimary: STTProvider = 'groq';
+  private sttFallback: STTProvider = 'web-speech';
   private ttsPrimary: TTSProvider = 'deepgram';
   private ttsFallback: TTSProvider = 'web-speech';
   private llmPrimary: LLMProvider = 'gemini';

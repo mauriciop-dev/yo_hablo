@@ -461,6 +461,37 @@ app.get('/api/users', async (req, res) => {
 });
 
 // ===== ELEVENLABS TTS ENDPOINT =====
+// ===== DEEPGRAM TTS ENDPOINT =====
+const DEEPGRAM_TTS_MODELS: Record<string, string> = {
+  'en-us': 'aura-2-harmonia-en',
+  'en-gb': 'aura-2-pandora-en',
+  'de-de': 'aura-2-kara-de',
+  'es-es': 'aura-2-nestor-es',
+  'es': 'aura-2-nestor-es',
+};
+
+app.post('/api/tts/deepgram', async (req, res) => {
+  try {
+    const { text, voiceId, language } = req.body;
+    const apiKey = process.env.DEEPGRAM_API_KEY;
+    if (!apiKey) return res.status(500).json({ error: 'DEEPGRAM_API_KEY not configured' });
+    const voice = voiceId || DEEPGRAM_TTS_MODELS[language?.toLowerCase?.()] || 'aura-2-harmonia-en';
+    const response = await fetch(`https://api.deepgram.com/v1/speak?model=${encodeURIComponent(voice)}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Token ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    if (!response.ok) throw new Error(`Deepgram error ${response.status}`);
+    const audioBuffer = await response.arrayBuffer();
+    res.set('Content-Type', 'audio/mpeg');
+    res.send(Buffer.from(audioBuffer));
+  } catch (error: any) {
+    console.error('Deepgram TTS error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ===== ELEVENLABS TTS ENDPOINT =====
 app.post('/api/tts/elevenlabs', async (req, res) => {
   try {
     const { text, voiceId } = req.body;

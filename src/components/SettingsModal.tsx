@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Globe, Volume2, CheckCircle } from 'lucide-react';
+import { X, Globe, Volume2, CheckCircle, Mic, Play, Loader2 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { supabase } from '../lib/supabase';
 
@@ -12,6 +12,15 @@ type Voice = {
   language: string;
 };
 
+interface VoiceState {
+  isSpeaking: boolean;
+  isListening: boolean;
+  speakText: (text: string) => void;
+  stopSpeech: () => void;
+  startListening: (onResult: (text: string) => void) => void;
+  stopListening: () => void;
+}
+
 interface SettingsModalProps {
   open: boolean;
   onClose: () => void;
@@ -20,16 +29,19 @@ interface SettingsModalProps {
   onProfileChange: (profile: UserProfile) => void;
   voiceEnabled: boolean;
   onVoiceToggle: (enabled: boolean) => void;
+  selectedTutorVoice: string;
+  onSelectTutorVoice: (voiceId: string) => void;
+  voice: VoiceState;
   userId?: string;
 }
 
 export default function SettingsModal({
   open, onClose, currentProfile, profiles, onProfileChange,
-  voiceEnabled, onVoiceToggle, userId,
+  voiceEnabled, onVoiceToggle, selectedTutorVoice, onSelectTutorVoice, voice, userId,
 }: SettingsModalProps) {
   const [voices, setVoices] = useState<Voice[]>([]);
-  const [selectedTutorVoice, setSelectedTutorVoice] = useState('');
-  const [selectedTeacherVoice, setSelectedTeacherVoice] = useState('');
+  const [micTest, setMicTest] = useState('');
+  const [micTesting, setMicTesting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -37,6 +49,23 @@ export default function SettingsModal({
       if (data) setVoices(data as Voice[]);
     });
   }, [open]);
+
+  const filteredVoices = voices.filter(v => v.language.split(',').includes(
+    currentProfile.targetLanguage === 'German' ? 'de' : 'en'
+  ) || v.language === 'en,de');
+
+  const handleMicTest = () => {
+    if (voice.isListening) {
+      voice.stopListening();
+      return;
+    }
+    setMicTesting(true);
+    setMicTest('');
+    voice.startListening((transcript) => {
+      setMicTesting(false);
+      setMicTest(transcript || 'No se detectó voz. Intenta de nuevo.');
+    });
+  };
 
   if (!open) return null;
 
@@ -79,27 +108,53 @@ export default function SettingsModal({
             </button>
           </div>
 
-          {voiceEnabled && voices.length > 0 && (
-            <div className="space-y-3">
+          {voiceEnabled && (
+            <div className="space-y-4">
               <div>
                 <label className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">Voz del Tutor (Aura)</label>
-                <select value={selectedTutorVoice} onChange={(e) => setSelectedTutorVoice(e.target.value)}
+                <select value={selectedTutorVoice} onChange={(e) => onSelectTutorVoice(e.target.value)}
                   className="w-full mt-1 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
                   <option value="">Por defecto</option>
-                  {voices.map(v => (
+                  {filteredVoices.map(v => (
                     <option key={v.id} value={v.voice_id}>{v.name} ({v.provider})</option>
                   ))}
                 </select>
+                <div className="mt-2 flex items-center space-x-2">
+                  <button onClick={() => voice.speakText(currentProfile.targetLanguage === 'German'
+                    ? 'Hallo! Ich bin deine Sprachlehrerin. Freut mich, dich kennenzulernen.'
+                    : 'Hello! I am your language tutor. Nice to meet you!')}
+                    disabled={voice.isSpeaking}
+                    className="flex items-center space-x-1.5 px-3 py-1.5 bg-stone-100 hover:bg-emerald-50 text-stone-700 border border-stone-200 rounded-xl text-xs font-medium transition-all">
+                    <Play className="w-3.5 h-3.5" /><span>{voice.isSpeaking ? 'Reproduciendo...' : 'Probar voz'}</span>
+                  </button>
+                  {voice.isSpeaking && (
+                    <button onClick={voice.stopSpeech}
+                      className="px-3 py-1.5 bg-stone-100 hover:bg-rose-50 text-stone-700 border border-stone-200 rounded-xl text-xs font-medium transition-all">
+                      Detener
+                    </button>
+                  )}
+                </div>
               </div>
+
               <div>
-                <label className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">Voz del Profesor</label>
-                <select value={selectedTeacherVoice} onChange={(e) => setSelectedTeacherVoice(e.target.value)}
-                  className="w-full mt-1 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                  <option value="">Por defecto</option>
-                  {voices.map(v => (
-                    <option key={v.id} value={v.voice_id}>{v.name} ({v.provider})</option>
-                  ))}
-                </select>
+                <label className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">Prueba de micrófono</label>
+                <button onClick={handleMicTest}
+                  className={`mt-1 w-full flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl text-xs font-medium transition-all border ${
+                    voice.isListening ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-emerald-50'
+                  }`}>
+                  <Mic className="w-4 h-4" />
+                  <span>{voice.isListening ? 'Escuchando... pulsa para detener' : 'Probar micrófono'}</span>
+                </button>
+                {micTesting && !voice.isListening && (
+                  <p className="mt-2 text-xs text-stone-400 flex items-center space-x-1.5">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Transcribiendo...</span>
+                  </p>
+                )}
+                {micTest && (
+                  <p className="mt-2 text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl px-3 py-2">
+                    Reconocido: “{micTest}”
+                  </p>
+                )}
               </div>
             </div>
           )}

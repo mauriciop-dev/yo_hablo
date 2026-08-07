@@ -63,12 +63,13 @@ export default function App() {
   const [profile, setProfile] = useState<UserProfile>(PRESET_PROFILES[0]);
   const [activeTab, setActiveTab] = useState<Tab>('tutor');
   const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [selectedTutorVoice, setSelectedTutorVoice] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
   const streakDays = 5;
 
-  const voice = useVoice(profile.targetLanguage, profile.level);
+  const voice = useVoice(profile.targetLanguage, profile.level, selectedTutorVoice);
 
   useEffect(() => {
     const applyUser = async (session: any) => {
@@ -268,6 +269,9 @@ export default function App() {
         onProfileChange={handleProfileChange}
         voiceEnabled={voiceEnabled}
         onVoiceToggle={setVoiceEnabled}
+        selectedTutorVoice={selectedTutorVoice}
+        onSelectTutorVoice={setSelectedTutorVoice}
+        voice={voice}
       />
     </div>
   );
