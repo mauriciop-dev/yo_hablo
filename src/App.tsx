@@ -17,6 +17,10 @@ import LessonsPanel from './components/LessonsPanel';
 import VocabularyCards from './components/VocabularyCards';
 import Achievements from './components/Achievements';
 import OnboardingWizard from './components/OnboardingWizard';
+import InstallPwaBanner from './components/InstallPwaBanner';
+import { useAppMode } from './hooks/useAppMode';
+import { useInstallPrompt } from './hooks/useInstallPrompt';
+import { schedulePlanReminder, requestNotificationPermission, notificationsSupported, getNotificationPermission } from './lib/notifications';
 import { LessonData } from './data/lessons';
 
 const PRESET_PROFILES: UserProfile[] = [
@@ -70,6 +74,8 @@ export default function App() {
   const [onboarding, setOnboarding] = useState<{ completed: boolean; plan: any; skillLevels: any }>({ completed: true, plan: null, skillLevels: null });
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
   const streakDays = 5;
+  const appMode = useAppMode();
+  const install = useInstallPrompt();
 
   const voice = useVoice(profile.targetLanguage, profile.level, selectedTutorVoice);
 
@@ -123,6 +129,12 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (!onboarding.completed || !onboarding.plan) return;
+    const stop = schedulePlanReminder(onboarding.plan);
+    return stop;
+  }, [onboarding]);
+
   const handleUserReady = (user: AuthUser) => {
     setAuthUser(user);
     setProfile(getProfileFromAuth(user));
@@ -144,7 +156,7 @@ export default function App() {
   };
 
   const unlockedAchievements = new Set<string>(
-    streakDays >= 3 ? ['first-steps', 'streak-3'] : ['first-steps']
+    completedLessons.size >= 1 ? ['first-steps'] : []
   );
 
   if (checkingAuth) {
@@ -174,7 +186,7 @@ export default function App() {
   ];
 
   return (
-    <div className="min-h-screen bg-stone-50 text-stone-900 flex flex-col font-sans antialiased">
+    <div className={`bg-stone-50 text-stone-900 flex flex-col font-sans antialiased ${appMode === 'desktop' ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
       <header className="bg-white border-b border-stone-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -189,17 +201,19 @@ export default function App() {
             </div>
           </div>
 
-          <nav className="hidden lg:flex space-x-1 bg-stone-100 p-1 rounded-xl overflow-x-auto">
-            {navItems.map(([tab, label, Icon]) => (
-              <button key={tab} onClick={() => setActiveTab(tab)}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-1.5 whitespace-nowrap ${
-                  activeTab === tab ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-600 hover:text-stone-900'
-                }`}>
-                <Icon className={`w-4 h-4 ${activeTab === tab ? 'text-emerald-600' : ''}`} />
-                <span>{label}</span>
-              </button>
-            ))}
-          </nav>
+          {appMode === 'desktop' && (
+            <nav className="hidden lg:flex space-x-1 bg-stone-100 p-1 rounded-xl overflow-x-auto">
+              {navItems.map(([tab, label, Icon]) => (
+                <button key={tab} onClick={() => setActiveTab(tab)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-1.5 whitespace-nowrap ${
+                    activeTab === tab ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-600 hover:text-stone-900'
+                  }`}>
+                  <Icon className={`w-4 h-4 ${activeTab === tab ? 'text-emerald-600' : ''}`} />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </nav>
+          )}
 
           <div className="flex items-center space-x-3">
             <button onClick={() => setVoiceEnabled(!voiceEnabled)}
@@ -234,19 +248,45 @@ export default function App() {
         </div>
       </header>
 
-      <div className="lg:hidden flex justify-around bg-white border-b border-stone-200 p-1.5 overflow-x-auto">
-        {navItems.map(([tab, label, Icon]) => (
-          <button key={tab} onClick={() => setActiveTab(tab)}
-            className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-[10px] font-medium whitespace-nowrap ${
-              activeTab === tab ? 'text-emerald-700 bg-emerald-50' : 'text-stone-600'
-            }`}>
-            <Icon className="w-4 h-4 mb-0.5" /><span>{label}</span>
-          </button>
-        ))}
-      </div>
-
-      <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 flex flex-col lg:flex-row gap-4">
-        <div className="flex-1 flex flex-col min-w-0">
+      {appMode === 'desktop' ? (
+        <main className="flex-1 min-h-0 max-w-[1400px] w-full mx-auto p-4 flex gap-4 overflow-hidden">
+          <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+            {activeTab === 'tutor' && (
+              <TutorChat profile={profile} voiceEnabled={voiceEnabled} voice={voice} />
+            )}
+            {activeTab === 'lessons' && (
+              <LessonsPanel profile={profile} completedLessons={completedLessons} onStartLesson={handleStartLesson} />
+            )}
+            {activeTab === 'vocabulary' && (
+              <VocabularyCards profile={profile} speakText={voice.speakText} />
+            )}
+            {activeTab === 'reading' && (
+              <ReadingExercise profile={profile} speakText={voice.speakText} />
+            )}
+            {activeTab === 'writing' && (
+              <WritingExercise profile={profile} />
+            )}
+            {activeTab === 'admin' && (
+              <AdminPanel adminId={authUser.id} accessToken={authUser.accessToken || ''} />
+            )}
+          </div>
+          <aside className="w-72 shrink-0 min-h-0 overflow-y-auto space-y-4">
+            <ProgressBar
+              overall={Math.min(35 + streakDays * 3, 95)}
+              streakDays={streakDays}
+              skills={[
+                { skill: 'Speaking', level: Math.min(20 + streakDays * 2, 90), color: 'bg-emerald-500', icon: <MessageSquare className="w-3.5 h-3.5" /> },
+                { skill: 'Listening', level: Math.min(30 + streakDays * 2, 90), color: 'bg-blue-500', icon: <Volume2 className="w-3.5 h-3.5" /> },
+                { skill: 'Reading', level: Math.min(15 + streakDays * 2, 90), color: 'bg-violet-500', icon: <BookOpen className="w-3.5 h-3.5" /> },
+                { skill: 'Writing', level: Math.min(10 + streakDays * 2, 90), color: 'bg-amber-500', icon: <PenTool className="w-3.5 h-3.5" /> },
+              ]}
+            />
+            <Achievements unlockedIds={unlockedAchievements} />
+            <InstallPwaBanner install={install} />
+          </aside>
+        </main>
+      ) : (
+        <main className="flex-1 w-full max-w-xl mx-auto p-4 pb-24">
           {activeTab === 'tutor' && (
             <TutorChat profile={profile} voiceEnabled={voiceEnabled} voice={voice} />
           )}
@@ -265,27 +305,38 @@ export default function App() {
           {activeTab === 'admin' && (
             <AdminPanel adminId={authUser.id} accessToken={authUser.accessToken || ''} />
           )}
-        </div>
-        <aside className="w-full lg:w-64 shrink-0 order-first lg:order-last space-y-4">
-          <div className="lg:sticky lg:top-24 space-y-4">
-            <ProgressBar
-              overall={Math.min(35 + streakDays * 3, 95)}
-              streakDays={streakDays}
-              skills={[
-                { skill: 'Speaking', level: Math.min(20 + streakDays * 2, 90), color: 'bg-emerald-500', icon: <MessageSquare className="w-3.5 h-3.5" /> },
-                { skill: 'Listening', level: Math.min(30 + streakDays * 2, 90), color: 'bg-blue-500', icon: <Volume2 className="w-3.5 h-3.5" /> },
-                { skill: 'Reading', level: Math.min(15 + streakDays * 2, 90), color: 'bg-violet-500', icon: <BookOpen className="w-3.5 h-3.5" /> },
-                { skill: 'Writing', level: Math.min(10 + streakDays * 2, 90), color: 'bg-amber-500', icon: <PenTool className="w-3.5 h-3.5" /> },
-              ]}
-            />
-            <Achievements unlockedIds={unlockedAchievements} />
-          </div>
-        </aside>
-      </main>
 
-      <footer className="py-4 text-center text-xs text-stone-400 border-t border-stone-200 bg-white">
-        Yo Hablo • Práctica de idiomas en vivo con voz y IA adaptativa
-      </footer>
+          {activeTab === 'tutor' && (
+            <div className="mt-4">
+              <ProgressBar
+                overall={Math.min(35 + streakDays * 3, 95)}
+                streakDays={streakDays}
+                skills={[
+                  { skill: 'Speaking', level: Math.min(20 + streakDays * 2, 90), color: 'bg-emerald-500', icon: <MessageSquare className="w-3.5 h-3.5" /> },
+                  { skill: 'Listening', level: Math.min(30 + streakDays * 2, 90), color: 'bg-blue-500', icon: <Volume2 className="w-3.5 h-3.5" /> },
+                  { skill: 'Reading', level: Math.min(15 + streakDays * 2, 90), color: 'bg-violet-500', icon: <BookOpen className="w-3.5 h-3.5" /> },
+                  { skill: 'Writing', level: Math.min(10 + streakDays * 2, 90), color: 'bg-amber-500', icon: <PenTool className="w-3.5 h-3.5" /> },
+                ]}
+              />
+              <Achievements unlockedIds={unlockedAchievements} />
+              <InstallPwaBanner install={install} />
+            </div>
+          )}
+        </main>
+      )}
+
+      {appMode !== 'desktop' && (
+        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-stone-200 flex justify-around p-1.5 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+          {navItems.map(([tab, label, Icon]) => (
+            <button key={tab} onClick={() => setActiveTab(tab)}
+              className={`flex flex-col items-center py-1.5 px-2.5 rounded-lg text-[10px] font-medium whitespace-nowrap ${
+                activeTab === tab ? 'text-emerald-700 bg-emerald-50' : 'text-stone-600'
+              }`}>
+              <Icon className="w-4 h-4 mb-0.5" /><span>{label}</span>
+            </button>
+          ))}
+        </nav>
+      )}
 
       <SettingsModal
         open={settingsOpen}
