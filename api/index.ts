@@ -14,6 +14,30 @@ const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_A
 const supabase = createClient(supabaseUrl, supabaseKey);
 const zaiApiKey = process.env.ZAI_API_KEY || '';
 
+async function getAuthUser(req: any) {
+  const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  if (!token) throw new Error('No autenticado');
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  if (error || !user) throw new Error('Token inválido o expirado');
+  return user;
+}
+
+async function requireAdmin(req: any, res: any): Promise<any> {
+  try {
+    const user = await getAuthUser(req);
+    const { data, error } = await supabase.from('users').select('role').eq('id', user.id).single();
+    if (error) throw new Error(error.message);
+    if (data?.role !== 'admin') {
+      res.status(403).json({ error: 'Acceso restringido: solo administradores' });
+      return null;
+    }
+    return user;
+  } catch (err: any) {
+    res.status(err.message === 'No autenticado' ? 401 : 403).json({ error: err.message });
+    return null;
+  }
+}
+
 async function callZAI(prompt: string, systemPrompt: string = ''): Promise<string> {
   const messages: any[] = [];
   if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
@@ -108,6 +132,8 @@ app.post('/api/guest-requests', async (req, res) => {
 });
 
 app.get('/api/guest-requests', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
   try {
     const { data, error } = await supabase.from('guest_requests').select('*').order('requested_at', { ascending: false });
     if (error) throw error;
@@ -117,10 +143,34 @@ app.get('/api/guest-requests', async (req, res) => {
   }
 });
 
-app.put('/api/guest-requests/:id', async (req, res) => {
+app.post('/api/guest-requests/:id/review', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
   try {
-    const { status, reviewedBy } = req.body;
-    const { data, error } = await supabase.from('guest_requests').update({ status, reviewed_by: reviewedBy, reviewed_at: new Date().toISOString() }).eq('id', req.params.id).select().single();
+    const { status } = req.body;
+    const { data: request, error: reqError } = await supabase.from('guest_requests').select('*').eq('id', req.params.id).single();
+    if (reqError) throw reqError;
+    const { data, error } = await supabase.from('guest_requests')
+      .update({ status, reviewed_by: admin.id, reviewed_at: new Date().toISOString() })
+      .eq('id', req.params.id).select().single();
+    if (error) throw error;
+    if (status === 'approved' && request?.guest_email) {
+      await supabase.from('users').upsert(
+        [{ email: request.guest_email, name: request.guest_name || request.guest_email, role: 'user', approved_by_admin: true }],
+        { onConflict: 'email' },
+      );
+    }
+    res.json(data);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/users', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: false });
     if (error) throw error;
     res.json(data);
   } catch (error: any) {

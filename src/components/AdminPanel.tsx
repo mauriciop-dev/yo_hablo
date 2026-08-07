@@ -23,24 +23,32 @@ type User = {
 
 interface AdminPanelProps {
   adminId: string;
+  accessToken: string;
 }
 
-export default function AdminPanel({ adminId }: AdminPanelProps) {
+export default function AdminPanel({ adminId, accessToken }: AdminPanelProps) {
   const [requests, setRequests] = useState<GuestRequest[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [tab, setTab] = useState<'requests' | 'users'>('requests');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const authHeaders = { 'Authorization': `Bearer ${accessToken}` };
 
   const fetchData = async () => {
     setLoading(true);
+    setError('');
     try {
       const [reqRes, usersRes] = await Promise.all([
-        fetch('/api/guest-requests'),
-        fetch('/api/users'),
+        fetch('/api/guest-requests', { headers: authHeaders }),
+        fetch('/api/users', { headers: authHeaders }),
       ]);
       if (reqRes.ok) setRequests(await reqRes.json());
+      else setError((await reqRes.json()).error || 'Error cargando solicitudes');
       if (usersRes.ok) setUsers(await usersRes.json());
+      else setError((await usersRes.json()).error || 'Error cargando usuarios');
     } catch (err) {
+      setError('Error de conexión');
       console.error(err);
     } finally {
       setLoading(false);
@@ -53,8 +61,8 @@ export default function AdminPanel({ adminId }: AdminPanelProps) {
     try {
       await fetch(`/api/guest-requests/${id}/review`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, reviewedBy: adminId }),
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
       });
       fetchData();
     } catch (err) {
@@ -95,6 +103,12 @@ export default function AdminPanel({ adminId }: AdminPanelProps) {
       {loading && (
         <div className="py-12 flex justify-center">
           <div className="w-6 h-6 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
+
+      {!loading && error && (
+        <div className="mt-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl">
+          {error}
         </div>
       )}
 

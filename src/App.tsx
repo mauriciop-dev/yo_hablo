@@ -26,7 +26,12 @@ const PRESET_PROFILES: UserProfile[] = [
 ];
 
 type Tab = 'tutor' | 'reading' | 'writing' | 'lessons' | 'vocabulary' | 'admin';
-type AuthUser = { id: string; email: string; name: string; role: string };
+type AuthUser = { id: string; email: string; name: string; role: string; accessToken?: string };
+
+async function fetchUserRole(userId: string): Promise<string> {
+  const { data } = await supabase.from('users').select('role').eq('id', userId).single();
+  return data?.role || 'user';
+}
 
 function getProfileFromAuth(auth: AuthUser): UserProfile {
   const preset = PRESET_PROFILES.find(p => p.email === auth.email && !p.isGuest);
@@ -51,25 +56,29 @@ export default function App() {
   const voice = useVoice(profile.targetLanguage, profile.level);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
+        const role = await fetchUserRole(session.user.id);
         setAuthUser({
           id: session.user.id,
           email: session.user.email || '',
           name: session.user.user_metadata?.full_name || session.user.email || 'Usuario',
-          role: 'user',
+          role,
+          accessToken: session.access_token,
         });
       }
       setCheckingAuth(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
+        const role = await fetchUserRole(session.user.id);
         setAuthUser({
           id: session.user.id,
           email: session.user.email || '',
           name: session.user.user_metadata?.full_name || session.user.email || 'Usuario',
-          role: 'user',
+          role,
+          accessToken: session.access_token,
         });
       } else {
         setAuthUser(null);
@@ -121,7 +130,7 @@ export default function App() {
     ['vocabulary', 'Vocabuario', Library],
     ['reading', 'Lectura', BookOpen],
     ['writing', 'Escritura', PenTool],
-    ['admin', 'Admin', ShieldCheck],
+    ...(authUser.role === 'admin' ? [['admin', 'Admin', ShieldCheck] as [Tab, string, any]] : []),
   ];
 
   return (
@@ -214,7 +223,7 @@ export default function App() {
             <WritingExercise profile={profile} />
           )}
           {activeTab === 'admin' && (
-            <AdminPanel adminId={authUser.id} />
+            <AdminPanel adminId={authUser.id} accessToken={authUser.accessToken || ''} />
           )}
         </div>
         <aside className="w-full lg:w-64 shrink-0 order-first lg:order-last space-y-4">
