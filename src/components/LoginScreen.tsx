@@ -10,6 +10,7 @@ interface LoginScreenProps {
 export default function LoginScreen({ onUserReady }: LoginScreenProps) {
   const [loading, setLoading] = useState(false);
   const [showGuestForm, setShowGuestForm] = useState(false);
+  const [guestEmail, setGuestEmail] = useState('');
   const [error, setError] = useState('');
   const [blocked, setBlocked] = useState(false);
 
@@ -29,11 +30,20 @@ export default function LoginScreen({ onUserReady }: LoginScreenProps) {
   };
 
   const handleGuestLogin = async () => {
+    if (!guestEmail) {
+      setError('Ingresa tu email para acceder como invitado');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/auth/guest', { method: 'POST' });
+      const res = await fetch('/api/auth/guest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: guestEmail }),
+      });
       const data = await res.json();
+      if (data.error) throw new Error(data.error);
       if (data.blocked) {
         setBlocked(true);
         return;
@@ -45,7 +55,7 @@ export default function LoginScreen({ onUserReady }: LoginScreenProps) {
         role: data.user.role,
       });
     } catch (err: any) {
-      setError('Error al acceder como invitado');
+      setError(err.message || 'Error al acceder como invitado');
     } finally {
       setLoading(false);
     }
@@ -58,8 +68,8 @@ export default function LoginScreen({ onUserReady }: LoginScreenProps) {
           <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto">
             <ShieldCheck className="w-8 h-8 text-amber-600" />
           </div>
-          <h2 className="text-lg font-bold text-stone-800">Sesiones agotadas</h2>
-          <p className="text-sm text-stone-600">Has usado tus 3 sesiones de prueba. Solicita acceso al administrador para continuar.</p>
+          <h2 className="text-lg font-bold text-stone-800">Acceso de invitado vencido</h2>
+          <p className="text-sm text-stone-600">Tu período de prueba de 14 días finalizó. Solicita acceso al administrador para continuar.</p>
           {showGuestForm ? (
             <GuestRequestForm onSent={() => setShowGuestForm(false)} />
           ) : (
@@ -100,17 +110,29 @@ export default function LoginScreen({ onUserReady }: LoginScreenProps) {
             <div className="relative flex justify-center text-xs"><span className="bg-white px-2 text-stone-400">o</span></div>
           </div>
 
-          <button onClick={handleGuestLogin} disabled={loading}
+          <button onClick={() => setShowGuestForm(!showGuestForm)} disabled={loading}
             className="w-full py-3 px-4 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-sm font-medium text-amber-800 transition-all flex items-center justify-center space-x-2 shadow-xs">
             <User className="w-4 h-4" /><span>Entrar como Invitado</span>
           </button>
+
+          {showGuestForm && (
+            <div className="space-y-2">
+              <input type="email" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)}
+                placeholder="Tu email (Gmail)"
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500" />
+              <button onClick={handleGuestLogin} disabled={loading}
+                className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-medium transition-all flex items-center justify-center space-x-2 shadow-xs">
+                <LogIn className="w-4 h-4" /><span>{loading ? 'Verificando...' : 'Comenzar prueba de 14 días'}</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {error && <p className="text-xs text-rose-600 text-center bg-rose-50 p-2 rounded-lg">{error}</p>}
 
         <p className="text-[10px] text-stone-400 text-center leading-relaxed">
           Al continuar, aceptas los términos de uso de Yo Hablo.
-          Los invitados tienen acceso limitado a 3 sesiones.
+          Los invitados tienen acceso de prueba por 14 días.
         </p>
       </div>
     </div>

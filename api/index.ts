@@ -122,16 +122,38 @@ Text: "${text}"`;
 });
 
 // ===== SUPABASE PROXY =====
+const GUEST_ACCESS_DAYS = 14;
+
 app.post('/api/auth/guest', async (req, res) => {
   try {
-    const { data: existing, error: lookupError } = await supabase.from('users').select('*').eq('email', 'guest@yohablo.com').single();
-    if (existing && existing.role === 'guest' && existing.guest_sessions_count && existing.guest_sessions_count >= 3) {
-      return res.json({ blocked: true });
+    const { email } = req.body || {};
+    if (!email) return res.status(400).json({ error: 'Email requerido' });
+    const guestEmail = String(email).trim().toLowerCase();
+
+    const { data: existing, error: lookupError } = await supabaseAdmin.from('users').select('*').eq('email', guestEmail).maybeSingle();
+    if (lookupError) throw lookupError;
+
+    if (existing) {
+      if (existing.role === 'user' || existing.role === 'admin') {
+        return res.json({ blocked: false, user: existing });
+      }
+      if (existing.role === 'guest' && existing.guest_expires_at) {
+        const expired = new Date(existing.guest_expires_at).getTime() < Date.now();
+        return res.json({ blocked: expired, user: existing });
+      }
+      const expiresAt = new Date(Date.now() + GUEST_ACCESS_DAYS * 24 * 60 * 60 * 1000).toISOString();
+      await supabaseAdmin.from('users')
+        .update({ guest_expires_at: expiresAt })
+        .eq('id', existing.id);
+      return res.json({ blocked: false, user: { ...existing, guest_expires_at: expiresAt } });
     }
-    const { data, error } = await supabase.from('users').insert([{ email: 'guest@yohablo.com', name: 'Invitado', role: 'guest' }]).select().single();
-    if (error && error.code !== '23505') throw error;
-    const guestData = existing || data;
-    return res.json({ user: guestData });
+
+    const expiresAt = new Date(Date.now() + GUEST_ACCESS_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    const { data, error } = await supabaseAdmin.from('users')
+      .insert([{ email: guestEmail, name: 'Invitado', role: 'guest', guest_expires_at: expiresAt, approved_by_admin: false }])
+      .select().single();
+    if (error) throw error;
+    return res.json({ blocked: false, user: data });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

@@ -32,6 +32,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || '',
 );
 
+const supabaseAdmin = supabase;
+
 function parseJSON(text: string) {
   if (!text) return {};
   let cleaned = text.trim();
@@ -250,45 +252,38 @@ app.post('/api/auth/user', async (req, res) => {
 });
 
 // Auth: Guest login / session tracking
+const GUEST_ACCESS_DAYS = 14;
+
 app.post('/api/auth/guest', async (req, res) => {
   try {
-    const email = `guest_${Date.now()}@guest.yohablo.app`;
-    const { data: existingGuest } = await supabase
-      .from('users')
-      .select('*')
-      .eq('role', 'guest')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+    const { email } = req.body || {};
+    if (!email) return res.status(400).json({ error: 'Email requerido' });
+    const guestEmail = String(email).trim().toLowerCase();
 
-    if (existingGuest && existingGuest.guest_sessions_count >= 3) {
-      return res.json({
-        blocked: true,
-        message: 'Has agotado tus 3 sesiones de prueba. Solicita acceso al administrador.',
-        guestId: existingGuest.id,
-      });
+    const { data: existing, error: lookupError } = await supabaseAdmin.from('users').select('*').eq('email', guestEmail).maybeSingle();
+    if (lookupError) throw lookupError;
+
+    if (existing) {
+      if (existing.role === 'user' || existing.role === 'admin') {
+        return res.json({ blocked: false, user: existing });
+      }
+      if (existing.role === 'guest' && existing.guest_expires_at) {
+        const expired = new Date(existing.guest_expires_at).getTime() < Date.now();
+        return res.json({ blocked: expired, user: existing });
+      }
+      const expiresAt = new Date(Date.now() + GUEST_ACCESS_DAYS * 24 * 60 * 60 * 1000).toISOString();
+      await supabaseAdmin.from('users')
+        .update({ guest_expires_at: expiresAt })
+        .eq('id', existing.id);
+      return res.json({ blocked: false, user: { ...existing, guest_expires_at: expiresAt } });
     }
 
-    const guestId = existingGuest?.id;
-    if (guestId) {
-      await supabase
-        .from('users')
-        .update({ guest_sessions_count: (existingGuest.guest_sessions_count || 0) + 1 })
-        .eq('id', guestId);
-    } else {
-      const { data: newGuest } = await supabase
-        .from('users')
-        .insert([{ email, name: 'Invitado', role: 'guest', guest_sessions_count: 1 }])
-        .select()
-        .single();
-      return res.json({ user: newGuest, isGuest: true, sessionsLeft: 2 });
-    }
-
-    res.json({
-      user: existingGuest,
-      isGuest: true,
-      sessionsLeft: 3 - (existingGuest.guest_sessions_count + 1),
-    });
+    const expiresAt = new Date(Date.now() + GUEST_ACCESS_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    const { data, error } = await supabaseAdmin.from('users')
+      .insert([{ email: guestEmail, name: 'Invitado', role: 'guest', guest_expires_at: expiresAt, approved_by_admin: false }])
+      .select().single();
+    if (error) throw error;
+    return res.json({ blocked: false, user: data });
   } catch (error: any) {
     console.error('Guest auth error:', error);
     res.status(500).json({ error: error.message });

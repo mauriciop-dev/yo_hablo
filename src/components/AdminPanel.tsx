@@ -17,7 +17,7 @@ type User = {
   email: string;
   name: string;
   role: string;
-  guest_sessions_count: number;
+  guest_expires_at: string | null;
   created_at: string;
 };
 
@@ -151,7 +151,7 @@ export default function AdminPanel({ adminId, accessToken }: AdminPanelProps) {
       {!loading && tab === 'users' && (
         <div className="mt-4 space-y-2">
           <div className="grid grid-cols-4 gap-2 px-4 py-2 text-[10px] font-semibold text-stone-500 uppercase tracking-wider border-b border-stone-200">
-            <span>Nombre</span><span>Email</span><span>Rol</span><span>Sesiones</span>
+            <span>Nombre</span><span>Email</span><span>Rol</span><span>Acceso invitado</span>
           </div>
           {users.map(u => (
             <div key={u.id} className="grid grid-cols-4 gap-2 px-4 py-2 text-xs text-stone-700 border-b border-stone-100 items-center">
@@ -161,7 +161,7 @@ export default function AdminPanel({ adminId, accessToken }: AdminPanelProps) {
                 u.role === 'admin' ? 'text-emerald-700' :
                 u.role === 'guest' ? 'text-amber-600' : 'text-stone-700'
               }`}>{u.role}</span>
-              <span className="text-stone-500">{u.guest_sessions_count}</span>
+              <span className="text-stone-500">{u.guest_expires_at ? new Date(u.guest_expires_at).toLocaleDateString() : '—'}</span>
             </div>
           ))}
         </div>
