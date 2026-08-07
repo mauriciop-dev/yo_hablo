@@ -624,6 +624,37 @@ app.post('/api/llm/kimi', async (req, res) => {
   }
 });
 
+app.get('/api/user/onboarding', async (req, res) => {
+  try {
+    const user = await getAuthUser(req);
+    const { data, error } = await supabase.from('users').select(
+      'onboarding_completed, selected_languages, goal, plan, skill_levels'
+    ).eq('id', user.id).single();
+    if (error) throw new Error(error.message);
+    res.json(data || { onboarding_completed: false });
+  } catch (err: any) {
+    res.status(401).json({ error: err.message });
+  }
+});
+
+app.put('/api/user/onboarding', async (req, res) => {
+  try {
+    const user = await getAuthUser(req);
+    const { onboarding_completed, selected_languages, goal, plan, skill_levels } = req.body;
+    const { error } = await supabaseAdmin.from('users').update({
+      onboarding_completed,
+      selected_languages,
+      goal,
+      plan,
+      skill_levels,
+    }).eq('id', user.id);
+    if (error) throw new Error(error.message);
+    res.json({ ok: true });
+  } catch (err: any) {
+    res.status(401).json({ error: err.message });
+  }
+});
+
 // Serve static files in production
 const distPath = path.join(__dirname, 'dist');
 app.use(express.static(distPath));

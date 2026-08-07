@@ -16,6 +16,7 @@ import ProgressBar from './components/ProgressBar';
 import LessonsPanel from './components/LessonsPanel';
 import VocabularyCards from './components/VocabularyCards';
 import Achievements from './components/Achievements';
+import OnboardingWizard from './components/OnboardingWizard';
 import { LessonData } from './data/lessons';
 
 const PRESET_PROFILES: UserProfile[] = [
@@ -66,10 +67,29 @@ export default function App() {
   const [selectedTutorVoice, setSelectedTutorVoice] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [onboarding, setOnboarding] = useState<{ completed: boolean; plan: any; skillLevels: any }>({ completed: true, plan: null, skillLevels: null });
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
   const streakDays = 5;
 
   const voice = useVoice(profile.targetLanguage, profile.level, selectedTutorVoice);
+
+  const loadOnboarding = async (auth: AuthUser) => {
+    try {
+      const res = await fetch('/api/user/onboarding', {
+        headers: { Authorization: `Bearer ${auth.accessToken}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setOnboarding({
+          completed: !!data.onboarding_completed,
+          plan: data.plan,
+          skillLevels: data.skill_levels,
+        });
+      }
+    } catch (e) {
+      console.warn('load onboarding failed', e);
+    }
+  };
 
   useEffect(() => {
     const applyUser = async (session: any) => {
@@ -88,6 +108,7 @@ export default function App() {
       authUser.role = role;
       setAuthUser(authUser);
       setProfile(getProfileFromAuth(authUser));
+      await loadOnboarding(authUser);
     };
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -137,6 +158,11 @@ export default function App() {
   if (!authUser) {
     return <LoginScreen onUserReady={handleUserReady} />;
   }
+
+  const handleOnboardingComplete = (data: { profile: UserProfile; plan: any; skillLevels: any }) => {
+    setProfile(data.profile);
+    setOnboarding({ completed: true, plan: data.plan, skillLevels: data.skillLevels });
+  };
 
   const navItems: [Tab, string, any][] = [
     ['tutor', 'Conversación', MessageSquare],
@@ -273,6 +299,15 @@ export default function App() {
         onSelectTutorVoice={setSelectedTutorVoice}
         voice={voice}
       />
+
+      {!onboarding.completed && authUser && (
+        <OnboardingWizard
+          profile={profile}
+          accessToken={authUser.accessToken || ''}
+          userId={authUser.id}
+          onComplete={handleOnboardingComplete}
+        />
+      )}
     </div>
   );
 }
