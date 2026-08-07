@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   MessageSquare, BookOpen, PenTool, Volume2, Sparkles, ShieldCheck,
-  Layers, Library, Trophy,
+  Layers, Library,
 } from 'lucide-react';
 import { UserProfile } from './types';
 import { supabase } from './lib/supabase';
@@ -20,7 +20,7 @@ import OnboardingWizard from './components/OnboardingWizard';
 import InstallPwaBanner from './components/InstallPwaBanner';
 import { useAppMode } from './hooks/useAppMode';
 import { useInstallPrompt } from './hooks/useInstallPrompt';
-import { schedulePlanReminder, requestNotificationPermission, notificationsSupported, getNotificationPermission } from './lib/notifications';
+import { schedulePlanReminder } from './lib/notifications';
 import { LessonData } from './data/lessons';
 
 const PRESET_PROFILES: UserProfile[] = [
