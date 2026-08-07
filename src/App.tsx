@@ -49,7 +49,7 @@ async function fetchUserRole(authUser: AuthUser): Promise<string> {
 function getProfileFromAuth(auth: AuthUser): UserProfile {
   const preset = PRESET_PROFILES.find(p => p.email === auth.email && !p.isGuest);
   if (preset) {
-    return { ...preset, id: auth.id, name: auth.name };
+    return { ...preset, id: auth.id };
   }
   return {
     id: auth.id, name: auth.name, email: auth.email,
