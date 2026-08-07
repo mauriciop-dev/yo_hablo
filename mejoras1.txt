@@ -1,0 +1,47 @@
+AJUSTES GENERALES PROYECTO: Yo Hablo
+
+1. Revisa el inicio de sesión que funcione para Mariana y Mauricio como usuarios principales:
+
+Mariana con el correo: mary.pinrodriguez@gmail.com
+Mauricio con el correo: shadowalkalone@gmail.com
+
+- El usuario invitado se puede registrar con su correo de Gmail y solo podrá acceder por 14 días,  una vez vencidos ya no podrá continuar a menos que el administrador ósea yo lo autorice y le cree su perfil
+
+- Si el administrador llega a aprobar un nuevo usuario este tendrá los mismos privilegios que los usuario principales (excepto por la Administración de la plataforma que solo estará disponible para shadowalkalone@gmail.com)
+
+2. Cada usuario principal, podrá configurar los idiomas que desea aprender en su propia zona de configuración. Inicialmente tenemos Ingles y Aleman
+
+3. El panel de Administración solo estará disponible para el usuario administrador que es shadowalkalone@gmail.com ósea Mauricio.
+
+4. Para el audio, estábamos usando inicialmente la API de google Gemini live, pero creo que pasamos a usar otro repositorio, verifica y confírmame.
+
+5. En las pruebas a pensar de que se activa el micrófono yo le hablaba pero no me reconocía la voz, verifica esto. 
+
+6. Puedes implementar un sistema para que en la configuración de idioma, también pueda hacer la configuración de voz y micrófono inicial. Para haga una primer reconocimiento de la voz del usuario.
+
+7. En la configuración también podrá seleccionar las voces disponibles para daca agente.
+
+
+AJUSTES INTERFAZ
+
+Recuerda que "Yo Hablo" sera una webapp en escritorio y una WPA en móvil. Debe funcionar en todos los navegadores y dispositivos, incluido el ecosistema IOS de Apple. ya que mariana tiene Mac y IPhone y Mauricio windows y andorid).
+
+8. Por la especificidad de la "Yo Hablo" creo que no hay necesidad de hacer scroll en la version de escritorio, busca organizar todos los componentes en la pantalla. usa tarjetas, pestañas o lo que sea usable para el usuario e intuitivo.
+
+9. Tambien hay que configurar una version WPA, para que cuando el usuario abra la aplicación en el navegador de su móvil le salga el botón de instalación.
+
+10. La WebApp y la WPA compartirán la información de la base de datos, pero la interfaz de cada una sera diferente, para ajustarse a dispositivos móviles.
+
+11. Mantén separado el diseño de interfaz de la WebApp y  la WPA, los cambios en uno no deben verse reflejados en el otro, a menos que se solicite de forma explicita.
+
+9. No pongas logros completados automáticamente, la primera vez que se entra a la aplicación debes presentar la aplicación al usuario y mostrar la ventana de configuración y guiarlo para que defina Idiomas, voces y configuraciones de micrófono y audio.
+
+10. Una vez hechas las configuraciones iniciales, debes explicar con voz y visualmente la interfaz, en dos minutos.
+
+11. Debes hacer una prueba inicial sencilla de las 4 habilidades al usuario para validar su nivel en dichas habilidades y poder tener un punto de partida.
+
+12. Debes pedirle al usuario cual es su objetivo, para organizar que habilidades, lecciones y frecuencia deben adaptarse para buscar lograr el objetivo. El usuario debe incluir en su objetivo habilidades y tiempo. Por ejemplo, si dice quiero tener un nivel conversacional de ingles en 6 meses, entonces sabras que debes poner la mayor carga en las lecciones de speaking o de conversación. y así dependiendo del objetivo que elija.
+
+11. Luego debes mostrar el plan o lecciones al usuario para aprender el idioma o idiomas seleccionados con tus recomendaciones.
+
+11. En la WPA mostraras notificaciones al usuario según el plan trazado para que continúe el aprendizaje.
