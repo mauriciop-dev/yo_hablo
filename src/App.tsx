@@ -19,23 +19,38 @@ import Achievements from './components/Achievements';
 import { LessonData } from './data/lessons';
 
 const PRESET_PROFILES: UserProfile[] = [
-  { id: 'mariana-german', name: 'Mariana', email: 'mariana@gmail.com', targetLanguage: 'German', level: 'A1', nativeLanguage: 'Spanish', avatarColor: 'bg-emerald-600' },
-  { id: 'mariana-english', name: 'Mariana (English)', email: 'mariana@gmail.com', targetLanguage: 'English', level: 'B1', nativeLanguage: 'Spanish', avatarColor: 'bg-teal-600' },
-  { id: 'mauricio-english', name: 'Mauricio', email: 'mauricio@gmail.com', targetLanguage: 'English', level: 'A1', nativeLanguage: 'Spanish', avatarColor: 'bg-indigo-600' },
+  { id: 'mariana-german', name: 'Mariana', email: 'mary.pinrodriguez@gmail.com', targetLanguage: 'German', level: 'A1', nativeLanguage: 'Spanish', avatarColor: 'bg-emerald-600' },
+  { id: 'mariana-english', name: 'Mariana (English)', email: 'mary.pinrodriguez@gmail.com', targetLanguage: 'English', level: 'B1', nativeLanguage: 'Spanish', avatarColor: 'bg-teal-600' },
+  { id: 'mauricio-german', name: 'Mauricio', email: 'shadowalkalone@gmail.com', targetLanguage: 'German', level: 'A1', nativeLanguage: 'Spanish', avatarColor: 'bg-indigo-600' },
+  { id: 'mauricio-english', name: 'Mauricio (English)', email: 'shadowalkalone@gmail.com', targetLanguage: 'English', level: 'B1', nativeLanguage: 'Spanish', avatarColor: 'bg-sky-600' },
   { id: 'guest', name: 'Invitado', targetLanguage: 'German', level: 'A1', nativeLanguage: 'Spanish', avatarColor: 'bg-amber-600', isGuest: true },
 ];
 
 type Tab = 'tutor' | 'reading' | 'writing' | 'lessons' | 'vocabulary' | 'admin';
 type AuthUser = { id: string; email: string; name: string; role: string; accessToken?: string };
 
-async function fetchUserRole(userId: string): Promise<string> {
-  const { data } = await supabase.from('users').select('role').eq('id', userId).single();
+async function fetchUserRole(authUser: AuthUser): Promise<string> {
+  try {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authUser.accessToken}` },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.role || 'user';
+    }
+  } catch (e) {
+    console.warn('Register failed, falling back to direct query', e);
+  }
+  const { data } = await supabase.from('users').select('role').eq('id', authUser.id).single();
   return data?.role || 'user';
 }
 
 function getProfileFromAuth(auth: AuthUser): UserProfile {
   const preset = PRESET_PROFILES.find(p => p.email === auth.email && !p.isGuest);
-  if (preset) return preset;
+  if (preset) {
+    return { ...preset, id: auth.id, name: auth.name };
+  }
   return {
     id: auth.id, name: auth.name, email: auth.email,
     targetLanguage: 'German', level: 'A1', nativeLanguage: 'Spanish',
@@ -56,33 +71,31 @@ export default function App() {
   const voice = useVoice(profile.targetLanguage, profile.level);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const role = await fetchUserRole(session.user.id);
-        setAuthUser({
-          id: session.user.id,
-          email: session.user.email || '',
-          name: session.user.user_metadata?.full_name || session.user.email || 'Usuario',
-          role,
-          accessToken: session.access_token,
-        });
+    const applyUser = async (session: any) => {
+      if (!session?.user) {
+        setAuthUser(null);
+        return;
       }
+      const authUser: AuthUser = {
+        id: session.user.id,
+        email: session.user.email || '',
+        name: session.user.user_metadata?.full_name || session.user.email || 'Usuario',
+        role: 'user',
+        accessToken: session.access_token,
+      };
+      const role = await fetchUserRole(authUser);
+      authUser.role = role;
+      setAuthUser(authUser);
+      setProfile(getProfileFromAuth(authUser));
+    };
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      await applyUser(session);
       setCheckingAuth(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        const role = await fetchUserRole(session.user.id);
-        setAuthUser({
-          id: session.user.id,
-          email: session.user.email || '',
-          name: session.user.user_metadata?.full_name || session.user.email || 'Usuario',
-          role,
-          accessToken: session.access_token,
-        });
-      } else {
-        setAuthUser(null);
-      }
+      await applyUser(session);
     });
 
     return () => subscription.unsubscribe();

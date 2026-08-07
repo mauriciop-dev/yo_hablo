@@ -12,7 +12,24 @@ app.use(express.json({ limit: '10mb' }));
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
+const supabaseAdmin = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_KEY || supabaseKey, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
 const zaiApiKey = process.env.ZAI_API_KEY || '';
+
+const ADMIN_EMAILS = ['shadowalkalone@gmail.com'];
+
+async function registerUser(user: any) {
+  const email = user.email || '';
+  const name = user.user_metadata?.full_name || email;
+  const role = ADMIN_EMAILS.includes(email) ? 'admin' : 'user';
+  const { data, error } = await supabaseAdmin.from('users').upsert(
+    [{ id: user.id, email, name, role, approved_by_admin: true }],
+    { onConflict: 'id' },
+  ).select('role').single();
+  if (error) throw error;
+  return { user, role: data?.role || role };
+}
 
 async function getAuthUser(req: any) {
   const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
@@ -117,6 +134,16 @@ app.post('/api/auth/guest', async (req, res) => {
     return res.json({ user: guestData });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const user = await getAuthUser(req);
+    const result = await registerUser(user);
+    res.json(result);
+  } catch (error: any) {
+    res.status(error.message === 'No autenticado' ? 401 : 500).json({ error: error.message });
   }
 });
 
