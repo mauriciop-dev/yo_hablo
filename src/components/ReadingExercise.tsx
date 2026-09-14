@@ -31,6 +31,22 @@ export default function ReadingExercise({ profile, speakText }: ReadingExerciseP
       setData(result);
     } catch (err) {
       console.error(err);
+      const fallback = {
+        title: topic || `Lectura ${profile.targetLanguage}`,
+        text: `Hoy vamos a practicar ${profile.targetLanguage}. ${topic || 'El tema principal'} aparece en situaciones cotidianas, con frases simples y vocabulario útil. Primero escuchas, luego lees con atención y finalmente respondes. Este tipo de ejercicio ayuda a mejorar la fluidez, la entonación y la comprensión general. También te permite repetir ideas clave y reforzar palabras importantes para hablar con más seguridad.`,
+        vocabulary: [
+          { word: 'practicar', translation: 'to practice' },
+          { word: 'tema', translation: 'topic' },
+          { word: 'fluidez', translation: 'fluency' },
+          { word: 'comprensión', translation: 'understanding' },
+        ],
+        questions: [
+          { question: '¿Qué objetivo tiene esta lectura?', options: ['Aprender vocabulario y comprensión', 'Escuchar música', 'No tiene objetivo', 'Jugar con palabras'], correctAnswer: 'Aprender vocabulario y comprensión' },
+          { question: '¿Qué ayuda a mejorar?', options: ['La fluidez y la comprensión', 'Solo la gramática', 'Nada', 'El color de la pantalla'], correctAnswer: 'La fluidez y la comprensión' },
+          { question: '¿Qué se recomienda hacer al final?', options: ['Repetir ideas clave', 'Cerrar la app', 'No leer', 'Cambiar de idioma'], correctAnswer: 'Repetir ideas clave' },
+        ],
+      };
+      setData(fallback as any);
     } finally {
       setLoading(false);
     }

@@ -16,7 +16,7 @@ export function useVoice(language: string, level: string, selectedVoice: VoiceSe
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const audioElRef = useRef<HTMLAudioElement | null>(null);
 
-  const langTag = language === 'German' ? 'de-DE' : 'en-US';
+  const langTag = language === 'German' ? 'de-DE' : language === 'French' ? 'fr-FR' : 'en-US';
 
   const speakWithWebSpeech = useCallback((text: string) => {
     if (!('speechSynthesis' in window)) return;

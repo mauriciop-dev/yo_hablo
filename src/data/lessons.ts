@@ -20,120 +20,124 @@ export interface ExerciseData {
   hints?: string[];
 }
 
-export const LESSONS: LessonData[] = [
-  {
-    id: 'de-a1-s1-l1',
-    language: 'German',
-    skill: 'speaking',
-    level: 'A1',
-    lessonNumber: 1,
-    title: 'Erste Begrüßungen — Primeros Saludos',
-    description: 'Aprende a saludar y presentarte en alemán. Saludos formales e informales.',
-    vocabulary: [
-      { word: 'Hallo', translation: 'Hola', example: 'Hallo, wie geht es dir?' },
-      { word: 'Guten Morgen', translation: 'Buenos días', example: 'Guten Morgen, Herr Schmidt.' },
-      { word: 'Auf Wiedersehen', translation: 'Adiós', example: 'Auf Wiedersehen, bis morgen!' },
-      { word: 'Tschüss', translation: 'Chao', example: 'Tschüss, bis später!' },
-    ],
-    exercises: [
-      { exerciseNumber: 1, type: 'voice', instructions: 'Repite en voz alta los siguientes saludos en alemán.', prompt: 'Di: "Hallo, ich heiße [tu nombre].", después "Guten Morgen!"' },
-      { exerciseNumber: 2, type: 'multiple_choice', instructions: '¿Cómo se dice "Buenos días" en alemán?', prompt: 'Selecciona la opción correcta:', options: ['Gute Nacht', 'Guten Morgen', 'Guten Abend', 'Hallo'], correctAnswer: 'Guten Morgen' },
-      { exerciseNumber: 3, type: 'fill_blank', instructions: 'Completa con el saludo adecuado.', prompt: '"___ (Hola), ich bin Anna."', correctAnswer: 'Hallo', hints: ['Empieza con H y termina con o'] },
-    ],
-  },
-  {
-    id: 'de-a1-s1-l2',
-    language: 'German',
-    skill: 'speaking',
-    level: 'A1',
-    lessonNumber: 2,
-    title: 'Sich vorstellen — Presentarse',
-    description: 'Aprende a decir tu nombre, de dónde eres y qué idiomas hablas.',
-    vocabulary: [
-      { word: 'Ich heiße', translation: 'Me llamo', example: 'Ich heiße María.' },
-      { word: 'Ich komme aus', translation: 'Vengo de', example: 'Ich komme aus Kolumbien.' },
-      { word: 'Ich spreche', translation: 'Yo hablo', example: 'Ich spreche Spanisch und Deutsch.' },
-      { word: 'Freut mich', translation: 'Mucho gusto', example: 'Freut mich, dich kennenzulernen!' },
-    ],
-    exercises: [
-      { exerciseNumber: 1, type: 'voice', instructions: 'Preséntate en alemán: nombre, país, idiomas.', prompt: 'Di: "Ich heiße [nombre]. Ich komme aus [país]. Ich spreche [idiomas]."' },
-      { exerciseNumber: 2, type: 'translation', instructions: 'Traduce al alemán.', prompt: '"Mucho gusto, me llamo Peter."', correctAnswer: 'Freut mich, ich heiße Peter.' },
-      { exerciseNumber: 3, type: 'fill_blank', instructions: 'Completa la frase.', prompt: '"Ich ___ (vengo de) Mexiko."', correctAnswer: 'komme aus', hints: ['Verbo: kommen, conjugado para ich'] },
-    ],
-  },
-  {
-    id: 'de-a1-l1-l1',
-    language: 'German',
-    skill: 'listening',
-    level: 'A1',
-    lessonNumber: 1,
-    title: 'Zahlen und Alter — Números y Edad',
-    description: 'Aprende los números del 1 al 20 y a preguntar/decir la edad.',
-    vocabulary: [
-      { word: 'eins, zwei, drei', translation: 'uno, dos, tres', example: 'Eins, zwei, drei, vier...' },
-      { word: 'Wie alt bist du?', translation: '¿Cuántos años tienes?', example: 'Wie alt bist du? — Ich bin 25.' },
-      { word: 'Ich bin ... Jahre alt', translation: 'Tengo ... años', example: 'Ich bin 30 Jahre alt.' },
-    ],
-    exercises: [
-      { exerciseNumber: 1, type: 'listening', instructions: 'Escucha los números y repítelos.', prompt: 'Uno: eins, Dos: zwei, Tres: drei, Cuatro: vier, Cinco: fünf, Seis: sechs, Siete: sieben, Ocho: acht, Nueve: neun, Diez: zehn' },
-      { exerciseNumber: 2, type: 'text', instructions: 'Escribe tu edad en alemán.', prompt: '"Ich bin [edad] Jahre alt."' },
-      { exerciseNumber: 3, type: 'multiple_choice', instructions: '¿Cómo se dice 15?', prompt: 'Elige la opción correcta:', options: ['fünfzig', 'fünfzehn', 'fünf', 'fünfundzwanzig'], correctAnswer: 'fünfzehn' },
-    ],
-  },
-  {
-    id: 'en-a1-s1-l1',
-    language: 'English',
-    skill: 'speaking',
-    level: 'A1',
-    lessonNumber: 1,
-    title: 'First Greetings',
-    description: 'Learn to greet people and introduce yourself in English.',
-    vocabulary: [
-      { word: 'Hello', translation: 'Hola', example: 'Hello, how are you?' },
-      { word: 'Good morning', translation: 'Buenos días', example: 'Good morning, teacher.' },
-      { word: 'My name is', translation: 'Me llamo', example: 'My name is Carlos.' },
-      { word: 'Nice to meet you', translation: 'Mucho gusto', example: 'Nice to meet you, Maria!' },
-    ],
-    exercises: [
-      { exerciseNumber: 1, type: 'voice', instructions: 'Practice greetings out loud.', prompt: 'Say: "Hello! My name is [your name]. Nice to meet you!"' },
-      { exerciseNumber: 2, type: 'fill_blank', instructions: 'Complete the greeting.', prompt: '"___ (Buenos días), how are you?"', correctAnswer: 'Good morning' },
-    ],
-  },
-  {
-    id: 'en-a1-s1-l2',
-    language: 'English',
-    skill: 'speaking',
-    level: 'A1',
-    lessonNumber: 2,
-    title: 'Talking About Yourself',
-    description: 'Say where you are from, your age, and what languages you speak.',
-    vocabulary: [
-      { word: 'I am from', translation: 'Soy de', example: 'I am from Colombia.' },
-      { word: 'I speak', translation: 'Yo hablo', example: 'I speak Spanish and English.' },
-      { word: 'I am ... years old', translation: 'Tengo ... años', example: 'I am 28 years old.' },
-    ],
-    exercises: [
-      { exerciseNumber: 1, type: 'voice', instructions: 'Introduce yourself.', prompt: 'Say: "I am from [country]. I speak [languages]. I am [age] years old."' },
-      { exerciseNumber: 2, type: 'translation', instructions: 'Translate to English.', prompt: '"Soy de México y hablo español."', correctAnswer: 'I am from Mexico and I speak Spanish.' },
-    ],
-  },
-  {
-    id: 'en-b1-s1-l1',
-    language: 'English',
-    skill: 'speaking',
-    level: 'B1',
-    lessonNumber: 1,
-    title: 'Expressing Opinions',
-    description: 'Learn to express your opinion, agree and disagree politely.',
-    vocabulary: [
-      { word: 'In my opinion', translation: 'En mi opinión', example: 'In my opinion, this is a great idea.' },
-      { word: 'I think that', translation: 'Creo que', example: 'I think that we should practice more.' },
-      { word: 'I agree', translation: 'Estoy de acuerdo', example: 'I agree with you.' },
-      { word: 'I disagree', translation: 'No estoy de acuerdo', example: 'I disagree, I think it is different.' },
-    ],
-    exercises: [
-      { exerciseNumber: 1, type: 'voice', instructions: 'Express your opinion about learning languages.', prompt: 'Say: "In my opinion, learning English is very useful. I think that practice is the key."' },
-      { exerciseNumber: 2, type: 'multiple_choice', instructions: 'How do you politely disagree?', prompt: 'Choose the correct option:', options: ['You are wrong!', 'I disagree, I think that...', 'No!', 'That is bad.'], correctAnswer: 'I disagree, I think that...' },
-    ],
-  },
-];
+const skillOrder = ['speaking', 'listening', 'reading', 'writing'] as const;
+const levelOrder = ['A1', 'A2', 'B1', 'B2', 'C1'] as const;
+const languageDefinitions = {
+  German: { code: 'de', label: 'Alemán', greeting: 'Hallo', practice: 'Wie geht es dir?' },
+  English: { code: 'en', label: 'Inglés', greeting: 'Hello', practice: 'How are you?' },
+  French: { code: 'fr', label: 'Francés', greeting: 'Bonjour', practice: 'Comment ça va?' },
+} as const;
+
+const lessonSubjects: Record<string, string[]> = {
+  speaking: ['Saludar', 'Presentarte', 'Hablar de rutina', 'Expresar opinión', 'Describir un tema'],
+  listening: ['Números y sonidos', 'Comprensión oral', 'Instrucciones', 'Conversations breves', 'Detalles clave'],
+  reading: ['Texto breve', 'Email sencillo', 'Historia corta', 'Artículo de interés', 'Resumen de lectura'],
+  writing: ['Frases básicas', 'Descripción personal', 'Mensaje corto', 'Opinión escrita', 'Texto expresivo'],
+};
+
+function makeExerciseSet(language: string, skill: string, level: string, lessonNumber: number, isTest = false): ExerciseData[] {
+  const exercises: ExerciseData[] = [
+    {
+      exerciseNumber: 1,
+      type: skill === 'speaking' ? 'voice' : skill === 'listening' ? 'listening' : skill === 'reading' ? 'reading' : 'writing',
+      instructions: isTest ? 'Completa la evaluación final del nivel.' : 'Practica esta habilidad con atención.',
+      prompt: isTest ? `Evaluación final de ${language} • ${level} • ${skill}` : `Ejercicio práctico de ${skill} en ${language}.`,
+    },
+    {
+      exerciseNumber: 2,
+      type: 'multiple_choice',
+      instructions: isTest ? 'Selecciona la opción correcta.' : 'Elige la respuesta adecuada.',
+      prompt: `Tema ${lessonNumber}: ${level} • ${skill}`,
+      options: ['Opción A', 'Opción B', 'Opción C', 'Opción D'],
+      correctAnswer: 'Opción A',
+    },
+    {
+      exerciseNumber: 3,
+      type: 'fill_blank',
+      instructions: isTest ? 'Completa el hueco con la respuesta correcta.' : 'Completa el hueco de manera natural.',
+      prompt: `${language} ${skill} • nivel ${level}`,
+      correctAnswer: languageDefinitions[language as keyof typeof languageDefinitions]?.greeting || 'Hola',
+      hints: ['Revisa la estructura de la frase.', 'Fíjate en el contexto.'],
+    },
+  ];
+
+  if (isTest) {
+    return [
+      {
+        exerciseNumber: 1,
+        type: 'multiple_choice',
+        instructions: 'Selecciona la respuesta correcta de la prueba final.',
+        prompt: `Prueba final: ${skill} • ${level} • ${language}`,
+        options: ['Respuesta correcta', 'Respuesta casi correcta', 'Respuesta incorrecta', 'Respuesta distractora'],
+        correctAnswer: 'Respuesta correcta',
+      },
+      {
+        exerciseNumber: 2,
+        type: 'fill_blank',
+        instructions: 'Completa la frase con la palabra correcta.',
+        prompt: `La frase clave para esta prueba es: "${languageDefinitions[language as keyof typeof languageDefinitions]?.practice || 'Práctica'}"`,
+        correctAnswer: languageDefinitions[language as keyof typeof languageDefinitions]?.greeting || 'Hola',
+      },
+      {
+        exerciseNumber: 3,
+        type: 'translation',
+        instructions: 'Traduce la frase con naturalidad.',
+        prompt: 'Traduce la frase al idioma objetivo.',
+        correctAnswer: languageDefinitions[language as keyof typeof languageDefinitions]?.greeting || 'Hola',
+      },
+    ];
+  }
+
+  return exercises;
+}
+
+function makeVocabulary(language: string, skill: string, level: string, lessonNumber: number) {
+  const base = [
+    `${languageDefinitions[language as keyof typeof languageDefinitions]?.greeting || 'Hola'}`,
+    `${skill} ${level}`,
+    `${languageDefinitions[language as keyof typeof languageDefinitions]?.label || 'Idioma'} ${lessonNumber}`,
+    `${level} práctica`,
+  ];
+  return base.map((word, index) => ({
+    word: word,
+    translation: `${word} • ${index + 1}`,
+    example: `${word} es clave para practicar ${skill.toLowerCase()}.`,
+  }));
+}
+
+function makeLesson(language: string, skill: string, level: string, lessonNumber: number): LessonData {
+  const subject = lessonSubjects[skill]?.[Math.min((lessonNumber - 1) % 5, 4)] || 'Tema principal';
+  const title = language === 'German'
+    ? `${subject} • ${level} • ${skill}`
+    : language === 'French'
+      ? `${subject} • ${level} • ${skill}`
+      : `${subject} • ${level} • ${skill}`;
+
+  const isTest = lessonNumber === 6;
+
+  return {
+    id: `${language === 'German' ? 'de' : language === 'French' ? 'fr' : 'en'}-${level.toLowerCase()}-${skill[0]}${lessonNumber}`,
+    language,
+    skill,
+    level,
+    lessonNumber,
+    title: isTest ? `${title} — Prueba final` : title,
+    description: isTest
+      ? `Prueba final para consolidar ${level} en ${skill.toLowerCase()} en ${language}.`
+      : `Lección ${lessonNumber} de ${level} enfocada en ${skill.toLowerCase()} para ${language}.`,
+    vocabulary: makeVocabulary(language, skill, level, lessonNumber),
+    exercises: makeExerciseSet(language, skill, level, lessonNumber, isTest),
+  };
+}
+
+export const LESSONS: LessonData[] = [];
+
+for (const language of Object.keys(languageDefinitions) as Array<keyof typeof languageDefinitions>) {
+  for (const skill of skillOrder) {
+    for (const level of levelOrder) {
+      for (let lessonNumber = 1; lessonNumber <= 6; lessonNumber += 1) {
+        LESSONS.push(makeLesson(language, skill, level, lessonNumber));
+      }
+    }
+  }
+}

@@ -1,0 +1,49 @@
+AJUSTES APLICACION YO HABLO
+
+1. Sección Conversación:
+
+1.1 quita la tarjeta de Progreso General y la de Logros
+1.2 usa el logo verde de la parte superior izquierda el que tiene una estrella dibujada para mostrar la información de Progreso General y la de Logros
+
+2. En la sección Configuración:
+
+2.1 Permite elegir el idioma Ingles, Aleman, Frances
+2.2 Permite elegir el nivel para iniciar A1 A2 B1 B2 C1 C2
+2.3 Permite elegir para cada Idioma en cual habilidad quiere poner el énfasis (Hablar, Leer, Escuchar, escribir)
+2.4 Agrega una opción para escoger el color de la aplicación y aplicarlo de una vez
+
+Nota: En las voces, quita las voces de deepgram ya que no lo estamos usando y solo mantén las voces que funcionen.
+
+3. En la sección Lecciones
+
+3.1 Cada una de las 4 habilidades (Speaking, Listening, Reading, Writing) tiene los 5 niveles (A1, A2, B1, B2, C1,)
+3.2 Cada nivel debe tener por lo menos 5 lecciones con diferente grado de dificultad
+3.3 Al final de cada nivel debe existir una prueba (una sexta lección)
+3.4 si la persona hace todas las lecciones y pasa la prueba, la habilitaras en verde y notificaras en una ventana este logro al usuario
+3.5 esto se debe actualizar en la tarjeta de progreso y la de logros
+
+4. En la Sección de vocabulario
+
+4.1 solo agregaría una barra de progreso
+
+5. En la sección Lectura
+
+5.1 Cuando le doy al botón de Generar texto, hace el amague de que esta generando por unos segundos pero luego se detiene y no pasa nada.
+5.2 No se si después de que el usuario lea el texto le da alguna retroalimentación, valida eso.
+
+6. En la sección Escritura
+
+6.1 escribí texto en la caja de Tu Redacción y le di al botón "Enviar a corregir" pero al igual que el anterior hizo el amague unos segundos de que lo estaba enviando y luego se paro.
+6.2 Por lo anterior no pude ver funcionando la parte de evaluación y sugerencias
+
+7. la sección de Progreso y Logros
+
+7.1 Debe mostrar el avance real en cada habilidad y nivel
+7.2 Debe mostrar el progreso general en el idioma
+7.3 En logros activarse realmente en el cumplimiento de los logros
+
+Nota: no quiero nada simulado, que todo funcione como debe ser
+
+
+
+

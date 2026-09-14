@@ -7,8 +7,6 @@ type LLMProvider = 'gemini' | 'deepseek' | 'kimi' | 'zai';
 export class AIProvider {
   private sttPrimary: STTProvider = 'groq';
   private sttFallback: STTProvider = 'web-speech';
-  private ttsPrimary: TTSProvider = 'deepgram';
-  private ttsFallback: TTSProvider = 'web-speech';
   private llmPrimary: LLMProvider = 'gemini';
   private llmFallback: LLMProvider = 'zai';
 
@@ -33,7 +31,7 @@ export class AIProvider {
     const seen = new Set<TTSProvider>();
     const selected = voice?.provider as TTSProvider | undefined;
     if (selected && selected !== 'web-speech') { order.push(selected); seen.add(selected); }
-    for (const p of ['deepgram', 'gemini', 'elevenlabs'] as TTSProvider[]) {
+    for (const p of ['gemini', 'elevenlabs'] as TTSProvider[]) {
       if (!seen.has(p)) { order.push(p); seen.add(p); }
     }
     let lastError: Error | null = null;

@@ -23,6 +23,7 @@ import { useInstallPrompt } from './hooks/useInstallPrompt';
 import { schedulePlanReminder } from './lib/notifications';
 import { inferLevel } from './lib/skillTest';
 import { LessonData } from './data/lessons';
+import { calculateOverallProgress, calculateSkillProgress, evaluateAchievements, type ProgressState } from './lib/progress';
 
 const PRESET_PROFILES: UserProfile[] = [
   { id: 'mariana-german', name: 'Mariana', email: 'mary.pinrodriguez@gmail.com', targetLanguage: 'German', level: 'A1', nativeLanguage: 'Spanish', avatarColor: 'bg-emerald-600' },
@@ -78,6 +79,53 @@ export default function App() {
   const streakDays = 5;
   const appMode = useAppMode();
   const install = useInstallPrompt();
+
+  const progressState: ProgressState = {
+    completedLessons: Array.from(completedLessons),
+    passedTests: Array.from(completedLessons).filter(id => id.includes('test')),
+    skillScores: {
+      speaking: calculateSkillProgress({
+        completedLessons: Array.from(completedLessons),
+        passedTests: [],
+        skillScores: { speaking: 0, listening: 0, reading: 0, writing: 0 },
+        completedLevels: { speaking: ['A1'], listening: ['A1'], reading: ['A1'], writing: ['A1'] },
+      }, 'speaking'),
+      listening: calculateSkillProgress({
+        completedLessons: Array.from(completedLessons),
+        passedTests: [],
+        skillScores: { speaking: 0, listening: 0, reading: 0, writing: 0 },
+        completedLevels: { speaking: ['A1'], listening: ['A1'], reading: ['A1'], writing: ['A1'] },
+      }, 'listening'),
+      reading: calculateSkillProgress({
+        completedLessons: Array.from(completedLessons),
+        passedTests: [],
+        skillScores: { speaking: 0, listening: 0, reading: 0, writing: 0 },
+        completedLevels: { speaking: ['A1'], listening: ['A1'], reading: ['A1'], writing: ['A1'] },
+      }, 'reading'),
+      writing: calculateSkillProgress({
+        completedLessons: Array.from(completedLessons),
+        passedTests: [],
+        skillScores: { speaking: 0, listening: 0, reading: 0, writing: 0 },
+        completedLevels: { speaking: ['A1'], listening: ['A1'], reading: ['A1'], writing: ['A1'] },
+      }, 'writing'),
+    },
+    completedLevels: {
+      speaking: completedLessons.size >= 1 ? ['A1'] : [],
+      listening: completedLessons.size >= 1 ? ['A1'] : [],
+      reading: completedLessons.size >= 1 ? ['A1'] : [],
+      writing: completedLessons.size >= 1 ? ['A1'] : [],
+    },
+  };
+
+  const progressOverall = calculateOverallProgress(progressState);
+  const skillProgress = [
+    { skill: 'Speaking', level: calculateSkillProgress(progressState, 'speaking'), color: 'bg-emerald-500', icon: <MessageSquare className="w-3.5 h-3.5" /> },
+    { skill: 'Listening', level: calculateSkillProgress(progressState, 'listening'), color: 'bg-blue-500', icon: <Volume2 className="w-3.5 h-3.5" /> },
+    { skill: 'Reading', level: calculateSkillProgress(progressState, 'reading'), color: 'bg-violet-500', icon: <BookOpen className="w-3.5 h-3.5" /> },
+    { skill: 'Writing', level: calculateSkillProgress(progressState, 'writing'), color: 'bg-amber-500', icon: <PenTool className="w-3.5 h-3.5" /> },
+  ];
+
+  const unlockedAchievements = new Set(evaluateAchievements(progressState));
 
   const voice = useVoice(profile.targetLanguage, profile.level, selectedTutorVoice);
 
@@ -167,10 +215,6 @@ export default function App() {
   const handleStartLesson = (lesson: LessonData) => {
     setActiveTab('tutor');
   };
-
-  const unlockedAchievements = new Set<string>(
-    completedLessons.size >= 1 ? ['first-steps'] : []
-  );
 
   const userProfiles = authUser
     ? PRESET_PROFILES.filter(p => authUser.email ? p.email === authUser.email : p.isGuest)
@@ -295,14 +339,9 @@ export default function App() {
           </div>
           <aside className="w-72 shrink-0 min-h-0 overflow-y-auto space-y-4">
             <ProgressBar
-              overall={Math.min(35 + streakDays * 3, 95)}
+              overall={progressOverall}
               streakDays={streakDays}
-              skills={[
-                { skill: 'Speaking', level: Math.min(20 + streakDays * 2, 90), color: 'bg-emerald-500', icon: <MessageSquare className="w-3.5 h-3.5" /> },
-                { skill: 'Listening', level: Math.min(30 + streakDays * 2, 90), color: 'bg-blue-500', icon: <Volume2 className="w-3.5 h-3.5" /> },
-                { skill: 'Reading', level: Math.min(15 + streakDays * 2, 90), color: 'bg-violet-500', icon: <BookOpen className="w-3.5 h-3.5" /> },
-                { skill: 'Writing', level: Math.min(10 + streakDays * 2, 90), color: 'bg-amber-500', icon: <PenTool className="w-3.5 h-3.5" /> },
-              ]}
+              skills={skillProgress}
             />
             <Achievements unlockedIds={unlockedAchievements} />
             <InstallPwaBanner install={install} />
@@ -332,14 +371,9 @@ export default function App() {
           {activeTab === 'tutor' && (
             <div className="mt-4">
               <ProgressBar
-                overall={Math.min(35 + streakDays * 3, 95)}
+                overall={progressOverall}
                 streakDays={streakDays}
-                skills={[
-                  { skill: 'Speaking', level: Math.min(20 + streakDays * 2, 90), color: 'bg-emerald-500', icon: <MessageSquare className="w-3.5 h-3.5" /> },
-                  { skill: 'Listening', level: Math.min(30 + streakDays * 2, 90), color: 'bg-blue-500', icon: <Volume2 className="w-3.5 h-3.5" /> },
-                  { skill: 'Reading', level: Math.min(15 + streakDays * 2, 90), color: 'bg-violet-500', icon: <BookOpen className="w-3.5 h-3.5" /> },
-                  { skill: 'Writing', level: Math.min(10 + streakDays * 2, 90), color: 'bg-amber-500', icon: <PenTool className="w-3.5 h-3.5" /> },
-                ]}
+                skills={skillProgress}
               />
               <Achievements unlockedIds={unlockedAchievements} />
               <InstallPwaBanner install={install} />

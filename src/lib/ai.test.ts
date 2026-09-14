@@ -73,7 +73,7 @@ describe('AIProvider', () => {
   });
 
   describe('synthesize', () => {
-    it('calls Deepgram endpoint by default and returns object URL', async () => {
+    it('calls Gemini endpoint by default and returns object URL', async () => {
       const blob = new Blob(['audio-data'], { type: 'audio/mpeg' });
       (global.fetch as any).mockResolvedValue({
         ok: true,
@@ -84,7 +84,7 @@ describe('AIProvider', () => {
       const result = await provider.synthesize('Hello', null, 'English');
       expect(result).toBe('blob:audio-url');
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/tts/deepgram'),
+        expect.stringContaining('/api/tts/gemini'),
         expect.objectContaining({
           method: 'POST',
           body: expect.stringContaining('Hello'),
@@ -109,11 +109,11 @@ describe('AIProvider', () => {
       );
     });
 
-    it('falls back to deepgram when the selected provider fails', async () => {
+    it('falls back to ElevenLabs when the selected provider fails', async () => {
       const blob = new Blob(['audio-data'], { type: 'audio/mpeg' });
       (global.fetch as any).mockImplementation((url: string) => {
         if (url.includes('/api/tts/gemini')) return Promise.reject(new Error('Gemini down'));
-        if (url.includes('/api/tts/deepgram')) return Promise.resolve({ ok: true, blob: async () => blob });
+        if (url.includes('/api/tts/elevenlabs')) return Promise.resolve({ ok: true, blob: async () => blob });
         return Promise.reject(new Error('unknown'));
       });
       URL.createObjectURL = vi.fn(() => 'blob:deepgram-url');

@@ -6,6 +6,22 @@ describe('lesson data integrity', () => {
     const languages = new Set(LESSONS.map(l => l.language));
     expect(languages.has('German')).toBe(true);
     expect(languages.has('English')).toBe(true);
+    expect(languages.has('French')).toBe(true);
+  });
+
+  it('contains five levels per skill and a final test lesson', () => {
+    const levelOrder = ['A1', 'A2', 'B1', 'B2', 'C1'];
+    for (const language of ['German', 'English', 'French']) {
+      for (const skill of ['speaking', 'listening', 'reading', 'writing']) {
+        const entries = LESSONS.filter(l => l.language === language && l.skill === skill);
+        expect(entries.length).toBeGreaterThanOrEqual(30);
+        for (const level of levelOrder) {
+          const levelEntries = entries.filter(l => l.level === level);
+          expect(levelEntries.length).toBeGreaterThanOrEqual(5);
+          expect(levelEntries.some(l => l.lessonNumber === 6)).toBe(true);
+        }
+      }
+    }
   });
 
   it('each lesson has required fields', () => {
@@ -14,7 +30,7 @@ describe('lesson data integrity', () => {
       expect(lesson.title).toBeTruthy();
       expect(lesson.description).toBeTruthy();
       expect(lesson.language).toBeTruthy();
-      expect(lesson.level).toMatch(/^A[12]|B1$/);
+      expect(lesson.level).toMatch(/^(A1|A2|B1|B2|C1|C2)$/);
       expect(lesson.lessonNumber).toBeGreaterThan(0);
       expect(Array.isArray(lesson.exercises)).toBe(true);
       expect(Array.isArray(lesson.vocabulary)).toBe(true);

@@ -56,6 +56,7 @@ async function requireAdmin(req: any, res: any): Promise<any> {
 }
 
 async function callZAI(prompt: string, systemPrompt: string = ''): Promise<string> {
+  if (!zaiApiKey) throw new Error('ZAI_API_KEY no configurada en el servidor');
   const messages: any[] = [];
   if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
   messages.push({ role: 'user', content: prompt });
@@ -64,9 +65,32 @@ async function callZAI(prompt: string, systemPrompt: string = ''): Promise<strin
     headers: { 'Authorization': `Bearer ${zaiApiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: 'glm-4.5-flash', messages, max_tokens: 2048 }),
   });
-  if (!response.ok) throw new Error(`Z.AI error ${response.status}`);
+  if (!response.ok) {
+    const errText = await response.text().catch(() => '');
+    throw new Error(`Z.AI error ${response.status}: ${errText.slice(0, 200)}`);
+  }
   const data = await response.json();
   return data.choices?.[0]?.message?.content || '';
+}
+
+function extractJSON(text: string): any | null {
+  if (!text) return null;
+  let cleaned = text.trim();
+  if (cleaned.startsWith('```json')) {
+    cleaned = cleaned.replace(/^```json/, '').replace(/```$/, '').trim();
+  } else if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```/, '').replace(/```$/, '').trim();
+  }
+  try {
+    return JSON.parse(cleaned);
+  } catch {}
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if (match) {
+    try {
+      return JSON.parse(match[0]);
+    } catch {}
+  }
+  return null;
 }
 
 // ===== TUTOR CHAT =====
@@ -94,13 +118,24 @@ Rules: respond in ${profile.targetLanguage}, 80/20 rule (80% natural conversatio
 app.post('/api/reading/generate', async (req, res) => {
   try {
     const { profile, topic } = req.body;
+    const systemPrompt = `You are a language learning content generator. You must respond with ONLY valid JSON, no markdown, no extra text.`;
     const prompt = `Generate a ${profile.level} ${profile.targetLanguage} reading text about "${topic}".
-Return valid JSON: { "title": "...", "text": "...", "vocabulary": [{"word":"...","translation":"..."}], "questions": [{"question":"...","options":["..."],"correctAnswer":"..."}] }`;
-    const textRes = await callZAI(prompt);
-    const jsonMatch = textRes.match(/\{[\s\S]*\}/);
-    const data = jsonMatch ? JSON.parse(jsonMatch[0]) : { title: 'Reading', text: textRes, vocabulary: [], questions: [] };
+Return ONLY this JSON structure (no markdown, no code fences):
+{ "title": "...", "text": "150-200 word reading passage", "vocabulary": [{"word":"...","translation":"in Spanish"}], "questions": [{"question":"...","options":["a","b","c","d"],"correctAnswer":"a"}] }
+Include exactly 4 vocabulary words and 3 questions.`;
+    const textRes = await callZAI(prompt, systemPrompt);
+    const data = extractJSON(textRes);
+    if (!data) {
+      throw new Error('El servidor no pudo generar el contenido. Intenta de nuevo.');
+    }
+    if (!data.title || !data.text) {
+      throw new Error('Respuesta incompleta del servidor de IA.');
+    }
+    if (!data.vocabulary) data.vocabulary = [];
+    if (!data.questions) data.questions = [];
     res.json(data);
   } catch (error: any) {
+    console.error('Reading gen error:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
@@ -109,14 +144,25 @@ Return valid JSON: { "title": "...", "text": "...", "vocabulary": [{"word":"..."
 app.post('/api/writing/feedback', async (req, res) => {
   try {
     const { text, profile } = req.body;
-    const prompt = `Review this ${profile.targetLanguage} text (${profile.level} level) and return JSON:
-{ "score": 0-100, "encouragement": "...", "correctedText": "...", "corrections": [{"original":"...","suggestion":"...","explanation":"..."}] }
-Text: "${text}"`;
-    const textRes = await callZAI(prompt);
-    const jsonMatch = textRes.match(/\{[\s\S]*\}/);
-    const data = jsonMatch ? JSON.parse(jsonMatch[0]) : { score: 50, encouragement: 'Good effort!', correctedText: text, corrections: [] };
+    if (!text || !text.trim()) {
+      return res.status(400).json({ error: 'No se recibio texto para corregir.' });
+    }
+    const systemPrompt = `You are a language learning writing evaluator. You must respond with ONLY valid JSON, no markdown, no extra text.`;
+    const prompt = `Review this ${profile.targetLanguage} text (${profile.level} level) and return ONLY this JSON (no markdown, no code fences):
+{ "score": 0-100, "encouragement": "encouraging comment in Spanish", "correctedText": "polished version", "corrections": [{"original":"...","suggestion":"...","explanation":"in Spanish"}] }
+Student text: "${text}"`;
+    const textRes = await callZAI(prompt, systemPrompt);
+    const data = extractJSON(textRes);
+    if (!data) {
+      throw new Error('El servidor no pudo procesar la correccion. Intenta de nuevo.');
+    }
+    if (typeof data.score !== 'number') data.score = 50;
+    if (!data.correctedText) data.correctedText = text;
+    if (!data.corrections) data.corrections = [];
+    if (!data.encouragement) data.encouragement = 'Buen intento, sigue practicando!';
     res.json(data);
   } catch (error: any) {
+    console.error('Writing feedback error:', error.message);
     res.status(500).json({ error: error.message });
   }
 });

@@ -43,6 +43,17 @@ export default function SettingsModal({
   const [voices, setVoices] = useState<Voice[]>([]);
   const [micTest, setMicTest] = useState('');
   const [micTesting, setMicTesting] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<string>(currentProfile.targetLanguage);
+  const [selectedLevel, setSelectedLevel] = useState<string>(currentProfile.level);
+  const [selectedSkill, setSelectedSkill] = useState<string>(currentProfile.preferredSkill || 'speaking');
+  const [selectedTheme, setSelectedTheme] = useState<string>(currentProfile.theme || 'emerald');
+
+  useEffect(() => {
+    setSelectedLanguage(currentProfile.targetLanguage);
+    setSelectedLevel(currentProfile.level);
+    setSelectedSkill(currentProfile.preferredSkill || 'speaking');
+    setSelectedTheme(currentProfile.theme || 'emerald');
+  }, [currentProfile]);
 
   useEffect(() => {
     if (!open) return;
@@ -51,9 +62,8 @@ export default function SettingsModal({
     });
   }, [open]);
 
-  const filteredVoices = voices.filter(v => v.language.split(',').includes(
-    currentProfile.targetLanguage === 'German' ? 'de' : 'en'
-  ) || v.language === 'en,de');
+  const localeKey = currentProfile.targetLanguage === 'German' ? 'de' : currentProfile.targetLanguage === 'French' ? 'fr' : 'en';
+  const filteredVoices = voices.filter(v => v.provider !== 'deepgram' && (v.language.split(',').includes(localeKey) || v.language === 'en,de' || v.language === 'en,fr'));
 
   const handleMicTest = () => {
     if (voice.isListening) {
@@ -95,6 +105,68 @@ export default function SettingsModal({
                   {currentProfile.id === p.id && <CheckCircle className="w-4 h-4 text-emerald-600" />}
                 </button>
               ))}
+            </div>
+          </div>
+
+          <div className="space-y-4 border border-stone-200 bg-stone-50 rounded-xl p-4">
+            <div>
+              <label className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">Idioma</label>
+              <select value={selectedLanguage} onChange={(e) => {
+                const value = e.target.value as 'German' | 'English' | 'French';
+                setSelectedLanguage(value);
+                onProfileChange({ ...currentProfile, targetLanguage: value });
+              }} className="w-full mt-1 bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="German">Alemán</option>
+                <option value="English">Inglés</option>
+                <option value="French">Francés</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">Nivel inicial</label>
+              <select value={selectedLevel} onChange={(e) => {
+                const value = e.target.value as any;
+                setSelectedLevel(value);
+                onProfileChange({ ...currentProfile, level: value });
+              }} className="w-full mt-1 bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                {['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].map(level => (
+                  <option key={level} value={level}>{level}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">Habilidad prioritária</label>
+              <select value={selectedSkill} onChange={(e) => {
+                const value = e.target.value as any;
+                setSelectedSkill(value);
+                onProfileChange({ ...currentProfile, preferredSkill: value });
+              }} className="w-full mt-1 bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="speaking">Hablar</option>
+                <option value="listening">Escuchar</option>
+                <option value="reading">Leer</option>
+                <option value="writing">Escribir</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">Color de la aplicación</label>
+              <div className="mt-2 grid grid-cols-4 gap-2">
+                {[
+                  { key: 'emerald', name: 'Verde', className: 'bg-emerald-600' },
+                  { key: 'violet', name: 'Violeta', className: 'bg-violet-600' },
+                  { key: 'sky', name: 'Azul', className: 'bg-sky-600' },
+                  { key: 'amber', name: 'Ámbar', className: 'bg-amber-500' },
+                ].map((theme) => (
+                  <button key={theme.key} onClick={() => {
+                    setSelectedTheme(theme.key);
+                    onProfileChange({ ...currentProfile, theme: theme.key as any });
+                  }} className={`rounded-xl border px-2 py-2 text-[10px] font-medium ${selectedTheme === theme.key ? 'border-stone-900 text-stone-900 bg-white' : 'border-stone-200 text-stone-600 bg-white'}`}>
+                    <span className={`inline-block w-4 h-4 rounded-full ${theme.className} mr-1 align-middle`} />
+                    {theme.name}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
