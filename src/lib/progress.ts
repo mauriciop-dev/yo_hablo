@@ -10,6 +10,8 @@ export type ProgressState = {
 
 export const LEVEL_ORDER: LevelName[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
+export const SKILL_NAMES: SkillName[] = ['speaking', 'listening', 'reading', 'writing'];
+
 function getSkillFromLessonId(id: string): SkillName | null {
   const parts = id.split('-');
   const token = parts[2]?.toLowerCase();
@@ -23,19 +25,31 @@ function getSkillFromLessonId(id: string): SkillName | null {
   return null;
 }
 
+function getLevelFromLessonId(id: string): LevelName | null {
+  const level = id.split('-')[1]?.toUpperCase() as LevelName | undefined;
+  return level && LEVEL_ORDER.includes(level) ? level : null;
+}
+
 export function calculateSkillProgress(progress: ProgressState, skill: SkillName): number {
   const lessonCount = progress.completedLessons.filter((lessonId) => getSkillFromLessonId(lessonId) === skill).length;
   const practiceScore = progress.skillScores[skill] ?? 0;
-  const lessonPct = Math.min(100, Math.round((lessonCount / 6) * 100));
+  const lessonPct = Math.min(100, Math.round((lessonCount / (LEVEL_ORDER.length * 6)) * 100));
   const blended = Math.round((lessonPct * 0.7) + (practiceScore * 0.3));
   return Math.max(0, Math.min(100, blended));
 }
 
 export function calculateOverallProgress(progress: ProgressState): number {
-  const skills: SkillName[] = ['speaking', 'listening', 'reading', 'writing'];
-  const values = skills.map((skill) => calculateSkillProgress(progress, skill));
+  const values = SKILL_NAMES.map((skill) => calculateSkillProgress(progress, skill));
   const total = values.reduce((sum, value) => sum + value, 0);
   return Math.round(total / values.length);
+}
+
+export function calculateLevelProgress(progress: ProgressState, skill: SkillName, level: LevelName): number {
+  const completed = progress.completedLessons.filter((id) => {
+    const parts = id.split('-');
+    return getSkillFromLessonId(id) === skill && parts[1]?.toUpperCase() === level.toLowerCase().toUpperCase();
+  }).length;
+  return Math.min(100, Math.round((completed / 6) * 100));
 }
 
 export function evaluateAchievements(progress: ProgressState): string[] {
@@ -59,7 +73,7 @@ export function evaluateAchievements(progress: ProgressState): string[] {
   if (skillCounts.reading >= 10) unlocked.push('reader');
   if (skillCounts.writing >= 10) unlocked.push('writer');
 
-  const reachedA2 = Object.values(progress.completedLevels).some((levels) => levels.includes('A2'));
+  const reachedA2 = Object.values(progress.completedLevels).some((levels) => levels.includes('A2')) || progress.completedLessons.some((id) => id.endsWith('-6') && getLevelFromLessonId(id) === 'A2');
   if (reachedA2) unlocked.push('level-up-a2');
 
   return [...new Set(unlocked)];

@@ -21,7 +21,7 @@ export interface ExerciseData {
 }
 
 const skillOrder = ['speaking', 'listening', 'reading', 'writing'] as const;
-const levelOrder = ['A1', 'A2', 'B1', 'B2', 'C1'] as const;
+const levelOrder = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const;
 const languageDefinitions = {
   German: { code: 'de', label: 'Alemán', greeting: 'Hallo', practice: 'Wie geht es dir?' },
   English: { code: 'en', label: 'Inglés', greeting: 'Hello', practice: 'How are you?' },

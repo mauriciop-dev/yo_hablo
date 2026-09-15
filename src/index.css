@@ -13,6 +13,19 @@
   --color-emerald-900: #064e3b;
 }
 
+.theme-violet .bg-emerald-600 { background-color: #7c3aed; }
+.theme-violet .hover\:bg-emerald-700:hover { background-color: #6d28d9; }
+.theme-violet .text-emerald-700 { color: #6d28d9; }
+.theme-violet .border-emerald-200 { border-color: #ddd6fe; }
+.theme-sky .bg-emerald-600 { background-color: #0284c7; }
+.theme-sky .hover\:bg-emerald-700:hover { background-color: #0369a1; }
+.theme-sky .text-emerald-700 { color: #0369a1; }
+.theme-sky .border-emerald-200 { border-color: #bae6fd; }
+.theme-amber .bg-emerald-600 { background-color: #d97706; }
+.theme-amber .hover\:bg-emerald-700:hover { background-color: #b45309; }
+.theme-amber .text-emerald-700 { color: #b45309; }
+.theme-amber .border-emerald-200 { border-color: #fde68a; }
+
 html {
   scroll-behavior: smooth;
 }

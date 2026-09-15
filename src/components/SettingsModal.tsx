@@ -32,6 +32,7 @@ interface SettingsModalProps {
   onVoiceToggle: (enabled: boolean) => void;
   selectedTutorVoice: VoiceSelection;
   onSelectTutorVoice: (voice: VoiceSelection) => void;
+  onApplySettings: (profile: UserProfile, voiceEnabled: boolean, voice: VoiceSelection) => void;
   voice: VoiceState;
   userId?: string;
 }
@@ -39,6 +40,7 @@ interface SettingsModalProps {
 export default function SettingsModal({
   open, onClose, currentProfile, profiles, onProfileChange,
   voiceEnabled, onVoiceToggle, selectedTutorVoice, onSelectTutorVoice, voice, userId,
+  onApplySettings,
 }: SettingsModalProps) {
   const [voices, setVoices] = useState<Voice[]>([]);
   const [micTest, setMicTest] = useState('');
@@ -47,13 +49,17 @@ export default function SettingsModal({
   const [selectedLevel, setSelectedLevel] = useState<string>(currentProfile.level);
   const [selectedSkill, setSelectedSkill] = useState<string>(currentProfile.preferredSkill || 'speaking');
   const [selectedTheme, setSelectedTheme] = useState<string>(currentProfile.theme || 'emerald');
+  const [draftVoiceEnabled, setDraftVoiceEnabled] = useState(voiceEnabled);
+  const [draftTutorVoice, setDraftTutorVoice] = useState<VoiceSelection>(selectedTutorVoice);
 
   useEffect(() => {
     setSelectedLanguage(currentProfile.targetLanguage);
     setSelectedLevel(currentProfile.level);
     setSelectedSkill(currentProfile.preferredSkill || 'speaking');
     setSelectedTheme(currentProfile.theme || 'emerald');
-  }, [currentProfile]);
+    setDraftVoiceEnabled(voiceEnabled);
+    setDraftTutorVoice(selectedTutorVoice);
+  }, [currentProfile, voiceEnabled, selectedTutorVoice]);
 
   useEffect(() => {
     if (!open) return;
@@ -114,7 +120,6 @@ export default function SettingsModal({
               <select value={selectedLanguage} onChange={(e) => {
                 const value = e.target.value as 'German' | 'English' | 'French';
                 setSelectedLanguage(value);
-                onProfileChange({ ...currentProfile, targetLanguage: value });
               }} className="w-full mt-1 bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
                 <option value="German">Alemán</option>
                 <option value="English">Inglés</option>
@@ -127,7 +132,6 @@ export default function SettingsModal({
               <select value={selectedLevel} onChange={(e) => {
                 const value = e.target.value as any;
                 setSelectedLevel(value);
-                onProfileChange({ ...currentProfile, level: value });
               }} className="w-full mt-1 bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
                 {['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].map(level => (
                   <option key={level} value={level}>{level}</option>
@@ -140,7 +144,6 @@ export default function SettingsModal({
               <select value={selectedSkill} onChange={(e) => {
                 const value = e.target.value as any;
                 setSelectedSkill(value);
-                onProfileChange({ ...currentProfile, preferredSkill: value });
               }} className="w-full mt-1 bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
                 <option value="speaking">Hablar</option>
                 <option value="listening">Escuchar</option>
@@ -160,7 +163,6 @@ export default function SettingsModal({
                 ].map((theme) => (
                   <button key={theme.key} onClick={() => {
                     setSelectedTheme(theme.key);
-                    onProfileChange({ ...currentProfile, theme: theme.key as any });
                   }} className={`rounded-xl border px-2 py-2 text-[10px] font-medium ${selectedTheme === theme.key ? 'border-stone-900 text-stone-900 bg-white' : 'border-stone-200 text-stone-600 bg-white'}`}>
                     <span className={`inline-block w-4 h-4 rounded-full ${theme.className} mr-1 align-middle`} />
                     {theme.name}
@@ -175,23 +177,23 @@ export default function SettingsModal({
               <Volume2 className="w-4 h-4 text-stone-500" />
               <span className="text-xs font-medium text-stone-700">Voz del Tutor</span>
             </div>
-            <button onClick={() => onVoiceToggle(!voiceEnabled)}
-              className={`relative w-10 h-5 rounded-full transition-all ${voiceEnabled ? 'bg-emerald-600' : 'bg-stone-300'}`}>
-              <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-xs transition-all ${voiceEnabled ? 'left-5' : 'left-0.5'}`} />
+            <button onClick={() => setDraftVoiceEnabled(!draftVoiceEnabled)}
+              className={`relative w-10 h-5 rounded-full transition-all ${draftVoiceEnabled ? 'bg-emerald-600' : 'bg-stone-300'}`}>
+              <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-xs transition-all ${draftVoiceEnabled ? 'left-5' : 'left-0.5'}`} />
             </button>
           </div>
 
-          {voiceEnabled && (
+          {draftVoiceEnabled && (
             <div className="space-y-4">
               <div>
                 <label className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">Voz del Tutor</label>
                 <select
-                  value={selectedTutorVoice ? `${selectedTutorVoice.provider}::${selectedTutorVoice.voice_id}` : ''}
+                  value={draftTutorVoice ? `${draftTutorVoice.provider}::${draftTutorVoice.voice_id}` : ''}
                   onChange={(e) => {
                     const val = e.target.value;
-                    if (!val) { onSelectTutorVoice(null); return; }
+                    if (!val) { setDraftTutorVoice(null); return; }
                     const [provider, voice_id] = val.split('::');
-                    onSelectTutorVoice({ provider, voice_id });
+                    setDraftTutorVoice({ provider, voice_id });
                   }}
                   className="w-full mt-1 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
                   <option value="">Por defecto</option>
@@ -240,10 +242,19 @@ export default function SettingsModal({
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-stone-200 flex justify-end">
+        <div className="px-6 py-4 border-t border-stone-200 flex justify-end gap-2">
           <button onClick={onClose}
+            className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs font-medium transition-all">
+            Cancelar
+          </button>
+          <button onClick={() => {
+            onApplySettings({ ...currentProfile, targetLanguage: selectedLanguage as UserProfile['targetLanguage'], level: selectedLevel as UserProfile['level'], preferredSkill: selectedSkill as UserProfile['preferredSkill'], theme: selectedTheme as UserProfile['theme'] }, draftVoiceEnabled, draftTutorVoice);
+            onVoiceToggle(draftVoiceEnabled);
+            onSelectTutorVoice(draftTutorVoice);
+            onClose();
+          }}
             className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-medium transition-all shadow-sm">
-            Cerrar
+            Aplicar cambios
           </button>
         </div>
       </div>

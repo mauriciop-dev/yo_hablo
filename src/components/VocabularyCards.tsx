@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { BookOpen, Volume2, ChevronLeft, ChevronRight, Shuffle, CheckCircle } from 'lucide-react';
 import { UserProfile } from '../types';
 import { LESSONS } from '../data/lessons';
@@ -23,6 +23,8 @@ export default function VocabularyCards({ profile, speakText }: VocabularyCardsP
   const [quizAnswer, setQuizAnswer] = useState('');
   const [quizResults, setQuizResults] = useState<Record<number, boolean>>({});
   const [quizDone, setQuizDone] = useState(false);
+  const viewedKey = `yo-hablo-vocabulary-${profile.id}-${profile.targetLanguage}`;
+  const [viewedCards, setViewedCards] = useState<Set<string>>(() => new Set(JSON.parse(localStorage.getItem(viewedKey) || '[]')));
 
   const allVocab = useMemo(() => {
     const items: VocabItem[] = [];
@@ -44,6 +46,15 @@ export default function VocabularyCards({ profile, speakText }: VocabularyCardsP
 
   const current = cards[currentIdx];
   const score = Object.values(quizResults).filter(Boolean).length;
+
+  useEffect(() => {
+    if (!current) return;
+    setViewedCards(previous => {
+      const next = new Set(previous).add(`${current.word}-${current.lessonTitle}`);
+      localStorage.setItem(viewedKey, JSON.stringify(Array.from(next)));
+      return next;
+    });
+  }, [current, viewedKey]);
 
   const handleFlip = () => setFlipped(!flipped);
 
@@ -93,6 +104,10 @@ export default function VocabularyCards({ profile, speakText }: VocabularyCardsP
         <div>
           <h2 className="text-xl font-bold text-stone-800">Vocabulario</h2>
           <p className="text-xs text-stone-500 mt-0.5">{cards.length} palabras · {profile.targetLanguage}</p>
+          <div className="mt-2 w-48">
+            <div className="flex justify-between text-[10px] text-stone-500"><span>Tarjetas vistas</span><span>{viewedCards.size}/{cards.length}</span></div>
+            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-stone-100"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${cards.length ? Math.min(100, viewedCards.size / cards.length * 100) : 0}%` }} /></div>
+          </div>
         </div>
         <div className="flex items-center space-x-2">
           <button onClick={handleToggleShuffle}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RefreshCw, Volume2, BookOpen, BookMarked, CheckCircle, ChevronRight } from 'lucide-react';
 import { UserProfile, ReadingExercise as ReadingExerciseType } from '../types';
 
@@ -8,11 +8,15 @@ interface ReadingExerciseProps {
 }
 
 export default function ReadingExercise({ profile, speakText }: ReadingExerciseProps) {
-  const [topic, setTopic] = useState('Mi rutina diaria / Mein Alltag');
+  const [topic, setTopic] = useState('Mein Alltag');
   const [data, setData] = useState<ReadingExerciseType | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
   const [showResults, setShowResults] = useState(false);
+
+  useEffect(() => {
+    setTopic(profile.targetLanguage === 'German' ? 'Mein Alltag' : profile.targetLanguage === 'French' ? 'Ma routine quotidienne' : 'My daily routine');
+  }, [profile.targetLanguage]);
 
   const generate = async () => {
     setLoading(true);
@@ -31,20 +35,18 @@ export default function ReadingExercise({ profile, speakText }: ReadingExerciseP
       setData(result);
     } catch (err) {
       console.error(err);
-      const fallback = {
-        title: topic || `Lectura ${profile.targetLanguage}`,
-        text: `Hoy vamos a practicar ${profile.targetLanguage}. ${topic || 'El tema principal'} aparece en situaciones cotidianas, con frases simples y vocabulario útil. Primero escuchas, luego lees con atención y finalmente respondes. Este tipo de ejercicio ayuda a mejorar la fluidez, la entonación y la comprensión general. También te permite repetir ideas clave y reforzar palabras importantes para hablar con más seguridad.`,
-        vocabulary: [
-          { word: 'practicar', translation: 'to practice' },
-          { word: 'tema', translation: 'topic' },
-          { word: 'fluidez', translation: 'fluency' },
-          { word: 'comprensión', translation: 'understanding' },
-        ],
-        questions: [
-          { question: '¿Qué objetivo tiene esta lectura?', options: ['Aprender vocabulario y comprensión', 'Escuchar música', 'No tiene objetivo', 'Jugar con palabras'], correctAnswer: 'Aprender vocabulario y comprensión' },
-          { question: '¿Qué ayuda a mejorar?', options: ['La fluidez y la comprensión', 'Solo la gramática', 'Nada', 'El color de la pantalla'], correctAnswer: 'La fluidez y la comprensión' },
-          { question: '¿Qué se recomienda hacer al final?', options: ['Repetir ideas clave', 'Cerrar la app', 'No leer', 'Cambiar de idioma'], correctAnswer: 'Repetir ideas clave' },
-        ],
+      const fallback = profile.targetLanguage === 'German' ? {
+        title: topic || 'Mein Alltag', text: `Jeden Morgen beginne ich meinen Tag ruhig. Ich trinke Kaffee, lese kurz und plane meine Aufgaben. Am Nachmittag lerne ich neue Wörter und übe mit kurzen Gesprächen. Am Abend wiederhole ich die wichtigsten Ausdrücke.`,
+        vocabulary: [{ word: 'jeden Morgen', translation: 'every morning' }, { word: 'Aufgaben', translation: 'tasks' }, { word: 'wiederholen', translation: 'to review' }],
+        questions: [{ question: 'Was macht die Person am Nachmittag?', options: ['Sie lernt neue Wörter', 'Sie schläft', 'Sie reist', 'Sie kocht'], correctAnswer: 'Sie lernt neue Wörter' }, { question: 'Was macht die Person am Abend?', options: ['Sie wiederholt Ausdrücke', 'Sie arbeitet im Büro', 'Sie geht ins Kino', 'Sie schwimmt'], correctAnswer: 'Sie wiederholt Ausdrücke' }],
+      } : profile.targetLanguage === 'French' ? {
+        title: topic || 'Ma routine quotidienne', text: `Chaque matin, je commence ma journée calmement. Je prends un café, je lis un peu et je prépare mes tâches. L'après-midi, j'apprends de nouveaux mots et je pratique de courtes conversations. Le soir, je révise les expressions importantes.`,
+        vocabulary: [{ word: 'chaque matin', translation: 'every morning' }, { word: 'tâches', translation: 'tasks' }, { word: 'réviser', translation: 'to review' }],
+        questions: [{ question: 'Que fait la personne l’après-midi ?', options: ['Elle apprend de nouveaux mots', 'Elle dort', 'Elle voyage', 'Elle cuisine'], correctAnswer: 'Elle apprend de nouveaux mots' }, { question: 'Que fait-elle le soir ?', options: ['Elle révise les expressions', 'Elle travaille au bureau', 'Elle va au cinéma', 'Elle nage'], correctAnswer: 'Elle révise les expressions' }],
+      } : {
+        title: topic || 'My daily routine', text: `Every morning, I start my day calmly. I have a coffee, read for a few minutes, and plan my tasks. In the afternoon, I learn new words and practise short conversations. In the evening, I review the most important expressions.`,
+        vocabulary: [{ word: 'every morning', translation: 'cada mañana' }, { word: 'tasks', translation: 'tareas' }, { word: 'review', translation: 'repasar' }],
+        questions: [{ question: 'What does the person do in the afternoon?', options: ['They learn new words', 'They sleep', 'They travel', 'They cook'], correctAnswer: 'They learn new words' }, { question: 'What do they do in the evening?', options: ['They review expressions', 'They work at the office', 'They go to the cinema', 'They swim'], correctAnswer: 'They review expressions' }],
       };
       setData(fallback as any);
     } finally {
@@ -57,17 +59,17 @@ export default function ReadingExercise({ profile, speakText }: ReadingExerciseP
 
   return (
     <div className="flex-1 flex flex-col bg-white border border-stone-200 rounded-2xl shadow-xs p-6 overflow-y-auto">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-6 border-b border-stone-200 gap-4">
+      <div className="flex flex-col items-start justify-between gap-4 pb-6 border-b border-stone-200 sm:flex-row sm:items-center">
         <div>
           <h2 className="text-xl font-bold text-stone-800">Lectura Asistida ({profile.targetLanguage})</h2>
           <p className="text-xs text-stone-500 mt-0.5">Textos adaptados a tu nivel con vocabulario clave y preguntas de comprensión.</p>
         </div>
-        <div className="flex items-center space-x-2 w-full sm:w-auto">
+        <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
           <input type="text" value={topic} onChange={(e) => setTopic(e.target.value)}
             placeholder="Tema..."
-            className="bg-stone-100 border border-stone-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            className="w-full min-w-0 bg-stone-100 border border-stone-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 sm:w-48" />
           <button onClick={generate} disabled={loading}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-medium transition-all flex items-center space-x-1.5 shrink-0">
+            className="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-medium transition-all flex items-center justify-center space-x-1.5 sm:w-auto">
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /><span>Generar Texto</span>
           </button>
         </div>

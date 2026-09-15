@@ -11,6 +11,7 @@ AJUSTES APLICACION YO HABLO
 2.2 Permite elegir el nivel para iniciar A1 A2 B1 B2 C1 C2
 2.3 Permite elegir para cada Idioma en cual habilidad quiere poner el énfasis (Hablar, Leer, Escuchar, escribir)
 2.4 Agrega una opción para escoger el color de la aplicación y aplicarlo de una vez
+2.5 Crea un botón de aplicar cambios para que se vena al instante o pida reiniciar la wpa si es necesario
 
 Nota: En las voces, quita las voces de deepgram ya que no lo estamos usando y solo mantén las voces que funcionen.
 
@@ -30,13 +31,14 @@ Nota: En las voces, quita las voces de deepgram ya que no lo estamos usando y so
 
 5.1 Cuando le doy al botón de Generar texto, hace el amague de que esta generando por unos segundos pero luego se detiene y no pasa nada.
 5.2 No se si después de que el usuario lea el texto le da alguna retroalimentación, valida eso.
+5.3 El texto que aparece esta en Español, y creo que debería estar en el idioma respectivo que este aprendiendo el usuario
 
 6. En la sección Escritura
 
 6.1 escribí texto en la caja de Tu Redacción y le di al botón "Enviar a corregir" pero al igual que el anterior hizo el amague unos segundos de que lo estaba enviando y luego se paro.
 6.2 Por lo anterior no pude ver funcionando la parte de evaluación y sugerencias
 
-7. la sección de Progreso y Logros
+7. la sección de Progreso y Logros (esta la misma que menciono en 1.2)
 
 7.1 Debe mostrar el avance real en cada habilidad y nivel
 7.2 Debe mostrar el progreso general en el idioma

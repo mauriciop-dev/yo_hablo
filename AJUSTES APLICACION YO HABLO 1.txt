@@ -1,0 +1,37 @@
+AJUSTES APLICACION YO HABLO
+
+1. Sección Conversación:
+
+1.1 quita la tarjeta de Progreso General y la de Logros
+1.2 usa el logo verde de la parte superior izquierda el que tiene una estrella dibujada para mostrar la información de Progreso General y la de Logros
+
+2. En la sección Configuración:
+
+2.5 Crea un botón de aplicar cambios para que se vena al instante o pida reiniciar la wpa si es necesario
+
+Nota: En las voces, quita las voces de deepgram ya que no lo estamos usando y solo mantén las voces que funcionen. (OK)
+
+3. En la sección Lecciones
+
+3.5 esto se debe actualizar en la tarjeta de progreso y la de logros
+3.6 cuando hago clic en  una lección me manda a la sección conversación. Lo entiendo por que allí se pueden practicar todas las habilidades. PERO la lección de estar preparada, mi recomendación es que si vas a mandar todas las lecciones a la sección conversación, entonces escribe las instrucciones en el chat y las mencionas en el idioma que este estudiando. Luego si procedes a guiarlo a través de la lección y registrar el progreso.
+
+4. En la Sección de vocabulario
+
+4.1 solo agregaría una barra de progreso
+
+5. En la sección Lectura
+
+5.3 El texto que aparece esta en Español, y creo que debería estar en el idioma respectivo que este aprendiendo el usuario
+
+7. la sección de Progreso y Logros (esta la misma que menciono en 1.2)
+
+7.1 Debe mostrar el avance real en cada habilidad y nivel
+7.2 Debe mostrar el progreso general en el idioma
+7.3 En logros activarse realmente en el cumplimiento de los logros
+
+Nota: no quiero nada simulado, que todo funcione como debe ser
+
+
+
+

@@ -12,10 +12,9 @@ import ReadingExercise from './components/ReadingExercise';
 import WritingExercise from './components/WritingExercise';
 import AdminPanel from './components/AdminPanel';
 import SettingsModal from './components/SettingsModal';
-import ProgressBar from './components/ProgressBar';
 import LessonsPanel from './components/LessonsPanel';
 import VocabularyCards from './components/VocabularyCards';
-import Achievements from './components/Achievements';
+import ProgressAchievementsModal from './components/ProgressAchievementsModal';
 import OnboardingWizard from './components/OnboardingWizard';
 import InstallPwaBanner from './components/InstallPwaBanner';
 import { useAppMode } from './hooks/useAppMode';
@@ -23,7 +22,7 @@ import { useInstallPrompt } from './hooks/useInstallPrompt';
 import { schedulePlanReminder } from './lib/notifications';
 import { inferLevel } from './lib/skillTest';
 import { LessonData } from './data/lessons';
-import { calculateOverallProgress, calculateSkillProgress, evaluateAchievements, type ProgressState } from './lib/progress';
+import { evaluateAchievements, type ProgressState } from './lib/progress';
 
 const PRESET_PROFILES: UserProfile[] = [
   { id: 'mariana-german', name: 'Mariana', email: 'mary.pinrodriguez@gmail.com', targetLanguage: 'German', level: 'A1', nativeLanguage: 'Spanish', avatarColor: 'bg-emerald-600' },
@@ -72,60 +71,27 @@ export default function App() {
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [selectedTutorVoice, setSelectedTutorVoice] = useState<VoiceSelection>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [progressOpen, setProgressOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [onboarding, setOnboarding] = useState<{ completed: boolean; plan: any; skillLevels: any }>({ completed: true, plan: null, skillLevels: null });
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
+  const [activeLesson, setActiveLesson] = useState<LessonData | null>(null);
   const streakDays = 5;
   const appMode = useAppMode();
   const install = useInstallPrompt();
 
   const progressState: ProgressState = {
-    completedLessons: Array.from(completedLessons),
-    passedTests: Array.from(completedLessons).filter(id => id.includes('test')),
-    skillScores: {
-      speaking: calculateSkillProgress({
-        completedLessons: Array.from(completedLessons),
-        passedTests: [],
-        skillScores: { speaking: 0, listening: 0, reading: 0, writing: 0 },
-        completedLevels: { speaking: ['A1'], listening: ['A1'], reading: ['A1'], writing: ['A1'] },
-      }, 'speaking'),
-      listening: calculateSkillProgress({
-        completedLessons: Array.from(completedLessons),
-        passedTests: [],
-        skillScores: { speaking: 0, listening: 0, reading: 0, writing: 0 },
-        completedLevels: { speaking: ['A1'], listening: ['A1'], reading: ['A1'], writing: ['A1'] },
-      }, 'listening'),
-      reading: calculateSkillProgress({
-        completedLessons: Array.from(completedLessons),
-        passedTests: [],
-        skillScores: { speaking: 0, listening: 0, reading: 0, writing: 0 },
-        completedLevels: { speaking: ['A1'], listening: ['A1'], reading: ['A1'], writing: ['A1'] },
-      }, 'reading'),
-      writing: calculateSkillProgress({
-        completedLessons: Array.from(completedLessons),
-        passedTests: [],
-        skillScores: { speaking: 0, listening: 0, reading: 0, writing: 0 },
-        completedLevels: { speaking: ['A1'], listening: ['A1'], reading: ['A1'], writing: ['A1'] },
-      }, 'writing'),
-    },
-    completedLevels: {
-      speaking: completedLessons.size >= 1 ? ['A1'] : [],
-      listening: completedLessons.size >= 1 ? ['A1'] : [],
-      reading: completedLessons.size >= 1 ? ['A1'] : [],
-      writing: completedLessons.size >= 1 ? ['A1'] : [],
-    },
+    completedLessons: Array.from(completedLessons).filter(id => id.startsWith(profile.targetLanguage === 'German' ? 'de-' : profile.targetLanguage === 'French' ? 'fr-' : 'en-')),
+    passedTests: Array.from(completedLessons).filter(id => id.includes('-6')),
+    skillScores: { speaking: 0, listening: 0, reading: 0, writing: 0 },
+    completedLevels: { speaking: [], listening: [], reading: [], writing: [] },
   };
 
-  const progressOverall = calculateOverallProgress(progressState);
-  const skillProgress = [
-    { skill: 'Speaking', level: calculateSkillProgress(progressState, 'speaking'), color: 'bg-emerald-500', icon: <MessageSquare className="w-3.5 h-3.5" /> },
-    { skill: 'Listening', level: calculateSkillProgress(progressState, 'listening'), color: 'bg-blue-500', icon: <Volume2 className="w-3.5 h-3.5" /> },
-    { skill: 'Reading', level: calculateSkillProgress(progressState, 'reading'), color: 'bg-violet-500', icon: <BookOpen className="w-3.5 h-3.5" /> },
-    { skill: 'Writing', level: calculateSkillProgress(progressState, 'writing'), color: 'bg-amber-500', icon: <PenTool className="w-3.5 h-3.5" /> },
-  ];
-
   const unlockedAchievements = new Set(evaluateAchievements(progressState));
+
+  const profileStorageKey = authUser ? `yo-hablo-profile-${authUser.id}` : '';
+  const progressStorageKey = authUser ? `yo-hablo-completed-lessons-${authUser.id}` : '';
 
   const voice = useVoice(profile.targetLanguage, profile.level, selectedTutorVoice);
 
@@ -141,11 +107,13 @@ export default function App() {
           plan: data.plan,
           skillLevels: data.skill_levels,
         });
-        if (data.onboarding_completed) {
+        if (data.onboarding_completed && !localStorage.getItem(`yo-hablo-profile-${auth.id}`)) {
           setProfile((prev) => ({
             ...prev,
             targetLanguage: Array.isArray(data.selected_languages) && data.selected_languages.includes('German')
               ? 'German'
+              : Array.isArray(data.selected_languages) && data.selected_languages.includes('French')
+                ? 'French'
               : Array.isArray(data.selected_languages) && data.selected_languages.includes('English')
                 ? 'English'
                 : prev.targetLanguage,
@@ -174,7 +142,10 @@ export default function App() {
       const role = await fetchUserRole(authUser);
       authUser.role = role;
       setAuthUser(authUser);
-      setProfile(getProfileFromAuth(authUser));
+      const savedProfile = localStorage.getItem(`yo-hablo-profile-${authUser.id}`);
+      setProfile(savedProfile ? { ...getProfileFromAuth(authUser), ...JSON.parse(savedProfile) } : getProfileFromAuth(authUser));
+      const savedLessons = localStorage.getItem(`yo-hablo-completed-lessons-${authUser.id}`);
+      setCompletedLessons(new Set(savedLessons ? JSON.parse(savedLessons) : []));
       await loadOnboarding(authUser);
     };
 
@@ -212,7 +183,25 @@ export default function App() {
     voice.stopLiveSession();
   };
 
+  const handleApplySettings = (p: UserProfile, nextVoiceEnabled: boolean, nextVoice: VoiceSelection) => {
+    setProfile(p);
+    setVoiceEnabled(nextVoiceEnabled);
+    setSelectedTutorVoice(nextVoice);
+    if (profileStorageKey) localStorage.setItem(profileStorageKey, JSON.stringify(p));
+    voice.stopLiveSession();
+  };
+
+  const completeLesson = (lesson: LessonData) => {
+    setCompletedLessons(previous => {
+      const next = new Set(previous);
+      next.add(lesson.id);
+      if (progressStorageKey) localStorage.setItem(progressStorageKey, JSON.stringify(Array.from(next)));
+      return next;
+    });
+  };
+
   const handleStartLesson = (lesson: LessonData) => {
+    setActiveLesson(lesson);
     setActiveTab('tutor');
   };
 
@@ -247,13 +236,13 @@ export default function App() {
   ];
 
   return (
-    <div className={`bg-stone-50 text-stone-900 flex flex-col font-sans antialiased ${appMode === 'desktop' ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
+    <div className={`theme-${profile.theme || 'emerald'} bg-stone-50 text-stone-900 flex flex-col font-sans antialiased ${appMode === 'desktop' ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
       <header className="bg-white border-b border-stone-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-bold shadow-sm">
+            <button onClick={() => setProgressOpen(true)} aria-label="Abrir progreso y logros" className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-bold shadow-sm hover:bg-emerald-700 transition-colors">
               <Sparkles className="w-5 h-5" />
-            </div>
+            </button>
             <div>
               <h1 className="text-lg font-semibold tracking-tight text-stone-800">Yo Hablo</h1>
               <p className="text-xs text-stone-500">
@@ -319,7 +308,7 @@ export default function App() {
         <main className="flex-1 min-h-0 max-w-[1400px] w-full mx-auto p-4 flex gap-4 overflow-hidden">
           <div className="flex-1 min-w-0 min-h-0 flex flex-col">
             {activeTab === 'tutor' && (
-              <TutorChat profile={profile} voiceEnabled={voiceEnabled} voice={voice} />
+              <TutorChat profile={profile} voiceEnabled={voiceEnabled} voice={voice} activeLesson={activeLesson} onLessonComplete={completeLesson} />
             )}
             {activeTab === 'lessons' && (
               <LessonsPanel profile={profile} completedLessons={completedLessons} onStartLesson={handleStartLesson} />
@@ -338,19 +327,13 @@ export default function App() {
             )}
           </div>
           <aside className="w-72 shrink-0 min-h-0 overflow-y-auto space-y-4">
-            <ProgressBar
-              overall={progressOverall}
-              streakDays={streakDays}
-              skills={skillProgress}
-            />
-            <Achievements unlockedIds={unlockedAchievements} />
             <InstallPwaBanner install={install} />
           </aside>
         </main>
       ) : (
         <main className="flex-1 w-full max-w-xl mx-auto p-4 pb-24">
           {activeTab === 'tutor' && (
-            <TutorChat profile={profile} voiceEnabled={voiceEnabled} voice={voice} />
+            <TutorChat profile={profile} voiceEnabled={voiceEnabled} voice={voice} activeLesson={activeLesson} onLessonComplete={completeLesson} />
           )}
           {activeTab === 'lessons' && (
             <LessonsPanel profile={profile} completedLessons={completedLessons} onStartLesson={handleStartLesson} />
@@ -370,12 +353,6 @@ export default function App() {
 
           {activeTab === 'tutor' && (
             <div className="mt-4">
-              <ProgressBar
-                overall={progressOverall}
-                streakDays={streakDays}
-                skills={skillProgress}
-              />
-              <Achievements unlockedIds={unlockedAchievements} />
               <InstallPwaBanner install={install} />
             </div>
           )}
@@ -405,7 +382,16 @@ export default function App() {
         onVoiceToggle={setVoiceEnabled}
         selectedTutorVoice={selectedTutorVoice}
         onSelectTutorVoice={setSelectedTutorVoice}
+        onApplySettings={handleApplySettings}
         voice={voice}
+      />
+
+      <ProgressAchievementsModal
+        open={progressOpen}
+        onClose={() => setProgressOpen(false)}
+        profile={profile}
+        progress={progressState}
+        unlockedIds={unlockedAchievements}
       />
 
       {!onboarding.completed && authUser && (
