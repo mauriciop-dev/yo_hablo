@@ -24,6 +24,11 @@
 .theme-amber .bg-emerald-600 { background-color: #d97706; }
 .theme-amber .hover\:bg-emerald-700:hover { background-color: #b45309; }
 .theme-amber .text-emerald-700 { color: #b45309; }
+.theme-pink .bg-emerald-600 { background-color: #db2777; }
+.theme-pink .hover\:bg-emerald-700:hover { background-color: #be185d; }
+.theme-pink .text-emerald-600 { color: #db2777; }
+.theme-pink .text-emerald-700 { color: #be185d; }
+.theme-pink .border-emerald-200 { border-color: #fbcfe8; }
 .theme-amber .border-emerald-200 { border-color: #fde68a; }
 
 html {

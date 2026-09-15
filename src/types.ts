@@ -1,7 +1,7 @@
 export type TargetLanguage = 'German' | 'English' | 'French';
 export type ProficiencyLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
 export type SkillFocus = 'speaking' | 'listening' | 'reading' | 'writing';
-export type AppTheme = 'emerald' | 'violet' | 'sky' | 'amber';
+export type AppTheme = 'emerald' | 'violet' | 'sky' | 'amber' | 'pink';
 
 export type UserProfile = {
   id: string;

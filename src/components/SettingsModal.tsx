@@ -160,6 +160,7 @@ export default function SettingsModal({
                   { key: 'violet', name: 'Violeta', className: 'bg-violet-600' },
                   { key: 'sky', name: 'Azul', className: 'bg-sky-600' },
                   { key: 'amber', name: 'Ámbar', className: 'bg-amber-500' },
+                  { key: 'pink', name: 'Rosado', className: 'bg-pink-500' },
                 ].map((theme) => (
                   <button key={theme.key} onClick={() => {
                     setSelectedTheme(theme.key);
