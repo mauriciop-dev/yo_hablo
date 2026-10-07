@@ -17,10 +17,11 @@ interface TutorChatProps {
   };
   streakDays?: number;
   activeLesson?: LessonData | null;
+  activeScenario?: { title: string; prompt: string } | null;
   onLessonComplete?: (lesson: LessonData) => void;
 }
 
-export default function TutorChat({ profile, voiceEnabled, voice, streakDays = 5, activeLesson = null, onLessonComplete }: TutorChatProps) {
+export default function TutorChat({ profile, voiceEnabled, voice, streakDays = 5, activeLesson = null, activeScenario = null, onLessonComplete }: TutorChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,12 +37,27 @@ export default function TutorChat({ profile, voiceEnabled, voice, streakDays = 5
   }, [messages, loading]);
 
   useEffect(() => {
+    if (activeScenario) {
+      setMessages([{
+        id: Date.now().toString(),
+        role: 'assistant',
+        text: `📍 Rol / Situación: ${activeScenario.title}\n\n${activeScenario.prompt}`,
+        timestamp: new Date()
+      }]);
+      setSuggestedReplies([
+        profile.targetLanguage === 'German' ? 'Ja, bitte.' : profile.targetLanguage === 'French' ? 'Oui, s il vous plaît.' : 'Yes, please.',
+        profile.targetLanguage === 'German' ? 'Was empfehlen Sie?' : profile.targetLanguage === 'French' ? 'Qu est-ce que vous recommandez ?' : 'What do you recommend?',
+      ]);
+      if (voiceEnabled) voice.speakText(activeScenario.prompt);
+      return;
+    }
+
     if (hasGreetedRef.current === profile.id) return;
     hasGreetedRef.current = profile.id;
     setMessages([]);
     setSuggestedReplies([]);
     initGreeting();
-  }, [profile.id]);
+  }, [profile.id, activeScenario]);
 
   useEffect(() => {
     if (!activeLesson) return;

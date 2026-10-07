@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   MessageSquare, BookOpen, PenTool, Volume2, Sparkles, ShieldCheck,
-  Layers, Library,
+  Layers, Library, Compass,
 } from 'lucide-react';
 import { UserProfile } from './types';
 import { supabase } from './lib/supabase';
@@ -14,6 +14,7 @@ import AdminPanel from './components/AdminPanel';
 import SettingsModal from './components/SettingsModal';
 import LessonsPanel from './components/LessonsPanel';
 import VocabularyCards from './components/VocabularyCards';
+import RoleplayPanel from './components/RoleplayPanel';
 import ProgressAchievementsModal from './components/ProgressAchievementsModal';
 import OnboardingWizard from './components/OnboardingWizard';
 import InstallPwaBanner from './components/InstallPwaBanner';
@@ -32,7 +33,7 @@ const PRESET_PROFILES: UserProfile[] = [
   { id: 'guest', name: 'Invitado', targetLanguage: 'German', level: 'A1', nativeLanguage: 'Spanish', avatarColor: 'bg-amber-600', isGuest: true },
 ];
 
-type Tab = 'tutor' | 'reading' | 'writing' | 'lessons' | 'vocabulary' | 'admin';
+type Tab = 'tutor' | 'roleplay' | 'reading' | 'writing' | 'lessons' | 'vocabulary' | 'admin';
 type AuthUser = { id: string; email: string; name: string; role: string; accessToken?: string };
 
 async function fetchUserRole(authUser: AuthUser): Promise<string> {
@@ -77,6 +78,7 @@ export default function App() {
   const [onboarding, setOnboarding] = useState<{ completed: boolean; plan: any; skillLevels: any }>({ completed: true, plan: null, skillLevels: null });
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
   const [activeLesson, setActiveLesson] = useState<LessonData | null>(null);
+  const [activeScenario, setActiveScenario] = useState<{ title: string; prompt: string } | null>(null);
   const streakDays = 5;
   const appMode = useAppMode();
   const install = useInstallPrompt();
@@ -201,7 +203,14 @@ export default function App() {
   };
 
   const handleStartLesson = (lesson: LessonData) => {
+    setActiveScenario(null);
     setActiveLesson(lesson);
+    setActiveTab('tutor');
+  };
+
+  const handleSelectScenario = (scenario: { title: string; prompt: string; description: string }) => {
+    setActiveScenario({ title: scenario.title, prompt: scenario.prompt });
+    setActiveLesson(null);
     setActiveTab('tutor');
   };
 
@@ -228,6 +237,7 @@ export default function App() {
 
   const navItems: [Tab, string, any][] = [
     ['tutor', 'Conversación', MessageSquare],
+    ['roleplay', 'Rol Play', Compass],
     ['lessons', 'Lecciones', Layers],
     ['vocabulary', 'Vocabuario', Library],
     ['reading', 'Lectura', BookOpen],
@@ -308,7 +318,10 @@ export default function App() {
         <main className="flex-1 min-h-0 max-w-[1400px] w-full mx-auto p-4 flex gap-4 overflow-hidden">
           <div className="flex-1 min-w-0 min-h-0 flex flex-col">
             {activeTab === 'tutor' && (
-              <TutorChat profile={profile} voiceEnabled={voiceEnabled} voice={voice} activeLesson={activeLesson} onLessonComplete={completeLesson} />
+              <TutorChat profile={profile} voiceEnabled={voiceEnabled} voice={voice} activeLesson={activeLesson} activeScenario={activeScenario} onLessonComplete={completeLesson} />
+            )}
+            {activeTab === 'roleplay' && (
+              <RoleplayPanel profile={profile} onSelectScenario={handleSelectScenario} />
             )}
             {activeTab === 'lessons' && (
               <LessonsPanel profile={profile} completedLessons={completedLessons} onStartLesson={handleStartLesson} />
@@ -333,7 +346,10 @@ export default function App() {
       ) : (
         <main className="flex-1 w-full max-w-xl mx-auto p-4 pb-24">
           {activeTab === 'tutor' && (
-            <TutorChat profile={profile} voiceEnabled={voiceEnabled} voice={voice} activeLesson={activeLesson} onLessonComplete={completeLesson} />
+            <TutorChat profile={profile} voiceEnabled={voiceEnabled} voice={voice} activeLesson={activeLesson} activeScenario={activeScenario} onLessonComplete={completeLesson} />
+          )}
+          {activeTab === 'roleplay' && (
+            <RoleplayPanel profile={profile} onSelectScenario={handleSelectScenario} />
           )}
           {activeTab === 'lessons' && (
             <LessonsPanel profile={profile} completedLessons={completedLessons} onStartLesson={handleStartLesson} />
