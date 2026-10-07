@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   MessageSquare, BookOpen, PenTool, Volume2, Sparkles, ShieldCheck,
-  Layers, Library, Compass,
+  Layers, Library, Compass, Mic,
 } from 'lucide-react';
 import { UserProfile } from './types';
 import { supabase } from './lib/supabase';
@@ -15,6 +15,7 @@ import SettingsModal from './components/SettingsModal';
 import LessonsPanel from './components/LessonsPanel';
 import VocabularyCards from './components/VocabularyCards';
 import RoleplayPanel from './components/RoleplayPanel';
+import PronunciationPractice from './components/PronunciationPractice';
 import ProgressAchievementsModal from './components/ProgressAchievementsModal';
 import OnboardingWizard from './components/OnboardingWizard';
 import InstallPwaBanner from './components/InstallPwaBanner';
@@ -33,7 +34,7 @@ const PRESET_PROFILES: UserProfile[] = [
   { id: 'guest', name: 'Invitado', targetLanguage: 'German', level: 'A1', nativeLanguage: 'Spanish', avatarColor: 'bg-amber-600', isGuest: true },
 ];
 
-type Tab = 'tutor' | 'roleplay' | 'reading' | 'writing' | 'lessons' | 'vocabulary' | 'admin';
+type Tab = 'tutor' | 'roleplay' | 'pronunciation' | 'reading' | 'writing' | 'lessons' | 'vocabulary' | 'admin';
 type AuthUser = { id: string; email: string; name: string; role: string; accessToken?: string };
 
 async function fetchUserRole(authUser: AuthUser): Promise<string> {
@@ -238,6 +239,7 @@ export default function App() {
   const navItems: [Tab, string, any][] = [
     ['tutor', 'Conversación', MessageSquare],
     ['roleplay', 'Rol Play', Compass],
+    ['pronunciation', 'Pronunciación', Mic],
     ['lessons', 'Lecciones', Layers],
     ['vocabulary', 'Vocabuario', Library],
     ['reading', 'Lectura', BookOpen],
@@ -323,6 +325,9 @@ export default function App() {
             {activeTab === 'roleplay' && (
               <RoleplayPanel profile={profile} onSelectScenario={handleSelectScenario} />
             )}
+            {activeTab === 'pronunciation' && (
+              <PronunciationPractice profile={profile} speakText={voice.speakText} />
+            )}
             {activeTab === 'lessons' && (
               <LessonsPanel profile={profile} completedLessons={completedLessons} onStartLesson={handleStartLesson} />
             )}
@@ -350,6 +355,9 @@ export default function App() {
           )}
           {activeTab === 'roleplay' && (
             <RoleplayPanel profile={profile} onSelectScenario={handleSelectScenario} />
+          )}
+          {activeTab === 'pronunciation' && (
+            <PronunciationPractice profile={profile} speakText={voice.speakText} />
           )}
           {activeTab === 'lessons' && (
             <LessonsPanel profile={profile} completedLessons={completedLessons} onStartLesson={handleStartLesson} />
