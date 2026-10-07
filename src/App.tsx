@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   MessageSquare, BookOpen, PenTool, Volume2, Sparkles, ShieldCheck,
-  Layers, Library, Compass, Mic,
+  Layers, Library, Compass, Mic, Moon, Sun,
 } from 'lucide-react';
 import { UserProfile } from './types';
 import { supabase } from './lib/supabase';
@@ -80,9 +80,14 @@ export default function App() {
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
   const [activeLesson, setActiveLesson] = useState<LessonData | null>(null);
   const [activeScenario, setActiveScenario] = useState<{ title: string; prompt: string } | null>(null);
+  const [darkMode, setDarkMode] = useState<boolean>(() => localStorage.getItem('yo-hablo-dark') === 'true');
   const streakDays = 5;
   const appMode = useAppMode();
   const install = useInstallPrompt();
+
+  useEffect(() => {
+    localStorage.setItem('yo-hablo-dark', String(darkMode));
+  }, [darkMode]);
 
   const progressState: ProgressState = {
     completedLessons: Array.from(completedLessons).filter(id => id.startsWith(profile.targetLanguage === 'German' ? 'de-' : profile.targetLanguage === 'French' ? 'fr-' : 'en-')),
@@ -248,29 +253,31 @@ export default function App() {
   ];
 
   return (
-    <div className={`theme-${profile.theme || 'emerald'} bg-stone-50 text-stone-900 flex flex-col font-sans antialiased ${appMode === 'desktop' ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
-      <header className="bg-white border-b border-stone-200 sticky top-0 z-50">
+    <div className={`theme-${profile.theme || 'emerald'} ${darkMode ? 'dark bg-stone-950 text-stone-100' : 'bg-stone-50 text-stone-900'} flex flex-col font-sans antialiased ${appMode === 'desktop' ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
+      <header className={`border-b sticky top-0 z-50 transition-colors ${darkMode ? 'bg-stone-900 border-stone-800 text-stone-100' : 'bg-white border-stone-200 text-stone-800'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <button onClick={() => setProgressOpen(true)} aria-label="Abrir progreso y logros" className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-bold shadow-sm hover:bg-emerald-700 transition-colors">
               <Sparkles className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-lg font-semibold tracking-tight text-stone-800">Yo Hablo</h1>
-              <p className="text-xs text-stone-500">
-                {profile.targetLanguage} <span className="font-medium text-emerald-700">({profile.level})</span>
+              <h1 className={`text-lg font-semibold tracking-tight ${darkMode ? 'text-stone-100' : 'text-stone-800'}`}>Yo Hablo</h1>
+              <p className="text-xs text-stone-400">
+                {profile.targetLanguage} <span className="font-medium text-emerald-500">({profile.level})</span>
               </p>
             </div>
           </div>
 
           {appMode === 'desktop' && (
-            <nav className="hidden lg:flex space-x-1 bg-stone-100 p-1 rounded-xl overflow-x-auto">
+            <nav className={`hidden lg:flex space-x-1 p-1 rounded-xl overflow-x-auto ${darkMode ? 'bg-stone-800/60' : 'bg-stone-100'}`}>
               {navItems.map(([tab, label, Icon]) => (
                 <button key={tab} onClick={() => setActiveTab(tab)}
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-1.5 whitespace-nowrap ${
-                    activeTab === tab ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-600 hover:text-stone-900'
+                    activeTab === tab
+                      ? darkMode ? 'bg-stone-800 text-white shadow-xs' : 'bg-white text-stone-900 shadow-xs'
+                      : darkMode ? 'text-stone-400 hover:text-white' : 'text-stone-600 hover:text-stone-900'
                   }`}>
-                  <Icon className={`w-4 h-4 ${activeTab === tab ? 'text-emerald-600' : ''}`} />
+                  <Icon className={`w-4 h-4 ${activeTab === tab ? 'text-emerald-500' : ''}`} />
                   <span>{label}</span>
                 </button>
               ))}
@@ -278,34 +285,48 @@ export default function App() {
           )}
 
           <div className="flex items-center space-x-3">
+            <button onClick={() => setDarkMode(!darkMode)}
+              className={`p-2 rounded-xl border transition-all ${
+                darkMode ? 'bg-stone-800 border-stone-700 text-amber-400 hover:bg-stone-700' : 'bg-stone-100 border-stone-200 text-stone-600 hover:bg-stone-200'
+              }`}
+              title="Modo Oscuro / Claro">
+              {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+
             <button onClick={() => setVoiceEnabled(!voiceEnabled)}
               className={`p-2 rounded-xl border transition-all ${
-                voiceEnabled ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-stone-100 border-stone-200 text-stone-400'
+                voiceEnabled
+                  ? darkMode ? 'bg-emerald-950/50 border-emerald-800 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                  : darkMode ? 'bg-stone-800 border-stone-700 text-stone-500' : 'bg-stone-100 border-stone-200 text-stone-400'
               }`}>
               <Volume2 className="w-5 h-5" />
             </button>
 
             <div className="relative">
               <button onClick={() => setProfileMenuOpen(o => !o)}
-                className="flex items-center space-x-2 p-1.5 pr-3 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 transition-all">
+                className={`flex items-center space-x-2 p-1.5 pr-3 rounded-xl border transition-all ${
+                  darkMode ? 'border-stone-800 bg-stone-900 hover:bg-stone-800 text-stone-200' : 'border-stone-200 bg-white hover:bg-stone-50 text-stone-800'
+                }`}>
                 <div className={`w-8 h-8 rounded-lg ${profile.avatarColor} text-white flex items-center justify-center font-bold text-sm shadow-xs`}>
                   {profile.name.charAt(0)}
                 </div>
                 <div className="text-left hidden sm:block">
-                  <div className="text-xs font-medium text-stone-800">{profile.name}</div>
-                  <div className="text-[10px] text-stone-500">{authUser.email || 'Invitado'}</div>
+                  <div className={`text-xs font-medium ${darkMode ? 'text-stone-200' : 'text-stone-800'}`}>{profile.name}</div>
+                  <div className="text-[10px] text-stone-400">{authUser.email || 'Invitado'}</div>
                 </div>
               </button>
               {profileMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setProfileMenuOpen(false)} />
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-stone-200 rounded-xl shadow-lg py-2 z-50">
+                  <div className={`absolute right-0 mt-2 w-48 border rounded-xl shadow-lg py-2 z-50 ${
+                    darkMode ? 'bg-stone-900 border-stone-800 text-stone-200' : 'bg-white border-stone-200 text-stone-800'
+                  }`}>
                     <button onClick={() => { setSettingsOpen(true); setProfileMenuOpen(false); }}
-                      className="w-full text-left px-4 py-2 text-xs text-stone-700 hover:bg-stone-50">
+                      className={`w-full text-left px-4 py-2 text-xs transition-colors ${darkMode ? 'hover:bg-stone-800 text-stone-200' : 'hover:bg-stone-50 text-stone-700'}`}>
                       Configuración
                     </button>
                     <button onClick={() => { handleLogout(); setProfileMenuOpen(false); }}
-                      className="w-full text-left px-4 py-2 text-xs text-rose-600 hover:bg-stone-50">
+                      className={`w-full text-left px-4 py-2 text-xs transition-colors ${darkMode ? 'hover:bg-stone-800 text-rose-400' : 'hover:bg-stone-50 text-rose-600'}`}>
                       Cerrar sesión
                     </button>
                   </div>
@@ -384,11 +405,15 @@ export default function App() {
       )}
 
       {appMode !== 'desktop' && (
-        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-stone-200 flex justify-around p-1.5 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+        <nav className={`fixed bottom-0 left-0 right-0 z-40 border-t flex justify-around p-1.5 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] ${
+          darkMode ? 'bg-stone-900 border-stone-800 text-stone-300' : 'bg-white border-stone-200 text-stone-600'
+        }`}>
           {navItems.map(([tab, label, Icon]) => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               className={`flex flex-col items-center py-1.5 px-2.5 rounded-lg text-[10px] font-medium whitespace-nowrap ${
-                activeTab === tab ? 'text-emerald-700 bg-emerald-50' : 'text-stone-600'
+                activeTab === tab
+                  ? darkMode ? 'text-emerald-400 bg-emerald-950/60' : 'text-emerald-700 bg-emerald-50'
+                  : darkMode ? 'text-stone-400' : 'text-stone-600'
               }`}>
               <Icon className="w-4 h-4 mb-0.5" /><span>{label}</span>
             </button>
