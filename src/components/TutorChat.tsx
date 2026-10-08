@@ -64,11 +64,12 @@ export default function TutorChat({ profile, voiceEnabled, voice, streakDays = 5
     setExerciseIndex(0);
     setExerciseAnswer('');
     setCompletedExercises(new Set());
+    const skillName = activeLesson.skill === 'speaking' ? 'Hablar (Speaking - Respuesta hablada)' : activeLesson.skill === 'listening' ? 'Escuchar (Listening - Preguntas y opciones)' : activeLesson.skill === 'reading' ? 'Leer (Reading - Preguntas y opciones)' : 'Escribir (Writing - Respuesta escrita)';
     const instruction = profile.targetLanguage === 'German'
-      ? `Wir beginnen jetzt die Lektion: ${activeLesson.title}. Folge den Anweisungen und beantworte alle Übungen.`
+      ? `Willkommen zur Lektion: "${activeLesson.title}". Fokus: ${skillName} (${activeLesson.level}). ${activeLesson.description} Bitte folge den Anweisungen im grünen Bereich unten.`
       : profile.targetLanguage === 'French'
-        ? `Nous commençons la leçon : ${activeLesson.title}. Suis les instructions et réponds à tous les exercices.`
-        : `We are starting the lesson: ${activeLesson.title}. Follow the instructions and answer every exercise.`;
+        ? `Bienvenue dans la leçon : "${activeLesson.title}". Objectif : ${skillName} (${activeLesson.level}). ${activeLesson.description} Suivez les instructions dans le panneau vert ci-dessous.`
+        : `Welcome to lesson: "${activeLesson.title}". Focus: ${skillName} (${activeLesson.level}). ${activeLesson.description} Follow the instructions in the green panel below.`;
     setMessages(prev => [...prev, { id: `lesson-${activeLesson.id}`, role: 'assistant', text: instruction, timestamp: new Date() }]);
   }, [activeLesson, profile.targetLanguage]);
 
@@ -236,22 +237,79 @@ export default function TutorChat({ profile, voiceEnabled, voice, streakDays = 5
         <div ref={messagesEndRef} />
       </div>
 
-      {activeLesson && exerciseIndex < activeLesson.exercises.length && (
-        <div className="border-t border-emerald-200 bg-emerald-50 p-4">
-          <div className="mb-2 flex items-center justify-between text-xs font-semibold text-emerald-900">
-            <span>{activeLesson.title}</span>
-            <span>Ejercicio {exerciseIndex + 1}/{activeLesson.exercises.length}</span>
-          </div>
-          <p className="text-xs text-emerald-900">{activeLesson.exercises[exerciseIndex].instructions}</p>
-          <p className="mt-1 text-sm font-medium text-stone-800">{activeLesson.exercises[exerciseIndex].prompt}</p>
-          {activeLesson.exercises[exerciseIndex].options ? (
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {activeLesson.exercises[exerciseIndex].options?.map(option => <button key={option} onClick={() => setExerciseAnswer(option)} className={`rounded-lg border px-3 py-2 text-left text-xs ${exerciseAnswer === option ? 'border-emerald-600 bg-emerald-100' : 'border-stone-200 bg-white'}`}>{option}</button>)}
+      {activeLesson && exerciseIndex < activeLesson.exercises.length && (() => {
+        const exercise = activeLesson.exercises[exerciseIndex];
+        const skill = activeLesson.skill;
+        return (
+          <div className="border-t border-emerald-200 bg-emerald-50 p-4 space-y-3">
+            <div className="flex items-center justify-between text-xs font-semibold text-emerald-900">
+              <span className="flex items-center space-x-1.5">
+                <span>{activeLesson.title}</span>
+                <span className="bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full text-[10px] uppercase font-bold">
+                  {skill === 'speaking' ? '🗣️ Speaking (Solo hablado)' : skill === 'listening' ? '🎧 Listening (Hablado / Opciones)' : skill === 'reading' ? '📖 Reading (Hablado / Opciones)' : '✍️ Writing (Solo escrito)'}
+                </span>
+              </span>
+              <span>Ejercicio {exerciseIndex + 1}/{activeLesson.exercises.length}</span>
             </div>
-          ) : <input value={exerciseAnswer} onChange={event => setExerciseAnswer(event.target.value)} className="mt-3 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm" placeholder={profile.targetLanguage === 'German' ? 'Deine Antwort...' : profile.targetLanguage === 'French' ? 'Ta réponse...' : 'Your answer...'} />}
-          <button onClick={submitLessonExercise} disabled={!exerciseAnswer.trim()} className="mt-3 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-medium text-white disabled:opacity-50">Continuar</button>
-        </div>
-      )}
+
+            <div className="bg-white border border-emerald-200 rounded-xl p-3 space-y-1 shadow-2xs">
+              <p className="text-xs font-bold text-emerald-800">📌 Instrucción: {exercise.instructions}</p>
+              <p className="text-sm font-semibold text-stone-900">❓ Pregunta / Reto: {exercise.prompt}</p>
+            </div>
+
+            {skill === 'speaking' ? (
+              <div className="flex flex-col items-center justify-center py-2 space-y-2">
+                <p className="text-xs text-stone-700 font-medium text-center">
+                  Este ejercicio es de <strong>Speaking</strong>. Por favor, responde <strong>hablando</strong> utilizando el micrófono:
+                </p>
+                <button
+                  onClick={() => {
+                    voice.startListening((transcript) => setExerciseAnswer(transcript));
+                  }}
+                  className={`px-4 py-2.5 rounded-xl text-xs font-bold text-white flex items-center space-x-2 transition-all shadow-sm ${
+                    voice.isListening ? 'bg-rose-500 animate-pulse' : 'bg-emerald-600 hover:bg-emerald-700'
+                  }`}>
+                  <span>{voice.isListening ? '🎤 Escuchando... Habla ahora' : '🎙️ Hablar respuesta'}</span>
+                </button>
+                {exerciseAnswer && (
+                  <p className="text-xs bg-emerald-100 text-emerald-900 px-3 py-1.5 rounded-lg border border-emerald-300 font-medium">
+                    Respuesta capturada: "{exerciseAnswer}"
+                  </p>
+                )}
+              </div>
+            ) : exercise.options ? (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {exercise.options.map(option => (
+                  <button key={option} onClick={() => setExerciseAnswer(option)}
+                    className={`rounded-xl border px-4 py-2.5 text-left text-xs font-semibold transition-all ${
+                      exerciseAnswer === option ? 'border-emerald-600 bg-emerald-100 text-emerald-900 font-bold shadow-2xs' : 'border-stone-200 bg-white text-stone-800 hover:bg-stone-50'
+                    }`}>
+                    {option}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <input
+                value={exerciseAnswer}
+                onChange={event => setExerciseAnswer(event.target.value)}
+                className="w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-sm text-stone-900 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
+                placeholder={
+                  skill === 'writing'
+                    ? 'Escribe tu respuesta escrita aquí...'
+                    : 'Escribe o responde aquí...'
+                }
+              />
+            )}
+
+            <button
+              onClick={submitLessonExercise}
+              disabled={!exerciseAnswer.trim()}
+              className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50 transition-all shadow-sm">
+              {exerciseIndex < activeLesson.exercises.length - 1 ? 'Continuar' : 'Finalizar lección'}
+            </button>
+          </div>
+        );
+      })()}
 
       {suggestedReplies.length > 0 && !loading && (
         <div className="px-6 py-2 bg-white border-t border-stone-100 flex items-center space-x-2 overflow-x-auto">
