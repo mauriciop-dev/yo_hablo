@@ -405,19 +405,21 @@ export default function App() {
       )}
 
       {appMode !== 'desktop' && (
-        <nav className={`fixed bottom-0 left-0 right-0 z-40 border-t flex justify-around p-1.5 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] ${
+        <nav className={`fixed bottom-0 left-0 right-0 z-40 border-t overflow-x-auto shadow-[0_-2px_10px_rgba(0,0,0,0.05)] ${
           darkMode ? 'bg-stone-900 border-stone-800 text-stone-300' : 'bg-white border-stone-200 text-stone-600'
         }`}>
-          {navItems.map(([tab, label, Icon]) => (
-            <button key={tab} onClick={() => setActiveTab(tab)}
-              className={`flex flex-col items-center py-1.5 px-2.5 rounded-lg text-[10px] font-medium whitespace-nowrap ${
-                activeTab === tab
-                  ? darkMode ? 'text-emerald-400 bg-emerald-950/60' : 'text-emerald-700 bg-emerald-50'
-                  : darkMode ? 'text-stone-400' : 'text-stone-600'
-              }`}>
-              <Icon className="w-4 h-4 mb-0.5" /><span>{label}</span>
-            </button>
-          ))}
+          <div className="flex space-x-1 px-2 py-1.5 min-w-max justify-start sm:justify-around">
+            {navItems.map(([tab, label, Icon]) => (
+              <button key={tab} onClick={() => setActiveTab(tab)}
+                className={`flex flex-col items-center py-1.5 px-3 rounded-lg text-[10px] font-medium whitespace-nowrap transition-all ${
+                  activeTab === tab
+                    ? darkMode ? 'text-emerald-400 bg-emerald-950/60' : 'text-emerald-700 bg-emerald-50'
+                    : darkMode ? 'text-stone-400 hover:text-stone-200' : 'text-stone-600 hover:text-stone-900'
+                }`}>
+                <Icon className="w-4 h-4 mb-0.5" /><span>{label}</span>
+              </button>
+            ))}
+          </div>
         </nav>
       )}
 

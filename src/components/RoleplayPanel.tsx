@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { UserProfile } from '../types';
 import { Compass, Sparkles, ArrowRight, Coffee, Building, Plane, Briefcase, ShoppingCart } from 'lucide-react';
 
@@ -103,8 +103,8 @@ export default function RoleplayPanel({ profile, onSelectScenario }: RoleplayPan
   const lang = ['German', 'English', 'French'].includes(profile.targetLanguage) ? profile.targetLanguage : 'German';
 
   return (
-    <div className="flex-1 p-6 max-w-5xl mx-auto w-full overflow-y-auto space-y-6">
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-700 rounded-3xl p-8 text-white shadow-lg relative overflow-hidden">
+    <div className="w-full max-w-5xl mx-auto p-4 sm:p-6 overflow-y-auto space-y-6">
+      <div className="bg-gradient-to-r from-emerald-600 to-teal-700 rounded-3xl p-6 sm:p-8 text-white shadow-lg relative overflow-hidden">
         <div className="absolute right-0 bottom-0 opacity-10 translate-x-10 translate-y-10">
           <Compass className="w-64 h-64" />
         </div>
