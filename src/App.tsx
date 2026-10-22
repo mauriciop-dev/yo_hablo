@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   MessageSquare, BookOpen, PenTool, Volume2, Sparkles, ShieldCheck,
-  Layers, Library,
+  Layers, Library, Mic,
 } from 'lucide-react';
 import { UserProfile } from './types';
 import { supabase } from './lib/supabase';
@@ -17,6 +17,7 @@ import VocabularyCards from './components/VocabularyCards';
 import ProgressAchievementsModal from './components/ProgressAchievementsModal';
 import OnboardingWizard from './components/OnboardingWizard';
 import InstallPwaBanner from './components/InstallPwaBanner';
+import RolePlay from './components/RolePlay';
 import { useAppMode } from './hooks/useAppMode';
 import { useInstallPrompt } from './hooks/useInstallPrompt';
 import { schedulePlanReminder } from './lib/notifications';
@@ -32,7 +33,7 @@ const PRESET_PROFILES: UserProfile[] = [
   { id: 'guest', name: 'Invitado', targetLanguage: 'German', level: 'A1', nativeLanguage: 'Spanish', avatarColor: 'bg-amber-600', isGuest: true },
 ];
 
-type Tab = 'tutor' | 'reading' | 'writing' | 'lessons' | 'vocabulary' | 'admin';
+type Tab = 'tutor' | 'reading' | 'writing' | 'lessons' | 'vocabulary' | 'roleplay' | 'admin';
 type AuthUser = { id: string; email: string; name: string; role: string; accessToken?: string };
 
 async function fetchUserRole(authUser: AuthUser): Promise<string> {
@@ -228,8 +229,9 @@ export default function App() {
 
   const navItems: [Tab, string, any][] = [
     ['tutor', 'Conversación', MessageSquare],
+    ['roleplay', 'Role Play', Mic],
     ['lessons', 'Lecciones', Layers],
-    ['vocabulary', 'Vocabuario', Library],
+    ['vocabulary', 'Vocabulario', Library],
     ['reading', 'Lectura', BookOpen],
     ['writing', 'Escritura', PenTool],
     ...(authUser.role === 'admin' ? [['admin', 'Admin', ShieldCheck] as [Tab, string, any]] : []),
@@ -310,6 +312,9 @@ export default function App() {
             {activeTab === 'tutor' && (
               <TutorChat profile={profile} voiceEnabled={voiceEnabled} voice={voice} activeLesson={activeLesson} onLessonComplete={completeLesson} />
             )}
+            {activeTab === 'roleplay' && (
+              <RolePlay profile={profile} voiceEnabled={voiceEnabled} voice={voice} />
+            )}
             {activeTab === 'lessons' && (
               <LessonsPanel profile={profile} completedLessons={completedLessons} onStartLesson={handleStartLesson} />
             )}
@@ -334,6 +339,9 @@ export default function App() {
         <main className="flex-1 w-full max-w-xl mx-auto p-4 pb-24">
           {activeTab === 'tutor' && (
             <TutorChat profile={profile} voiceEnabled={voiceEnabled} voice={voice} activeLesson={activeLesson} onLessonComplete={completeLesson} />
+          )}
+          {activeTab === 'roleplay' && (
+            <RolePlay profile={profile} voiceEnabled={voiceEnabled} voice={voice} />
           )}
           {activeTab === 'lessons' && (
             <LessonsPanel profile={profile} completedLessons={completedLessons} onStartLesson={handleStartLesson} />

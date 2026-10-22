@@ -114,6 +114,26 @@ Rules: respond in ${profile.targetLanguage}, 80/20 rule (80% natural conversatio
   }
 });
 
+// ===== ROLEPLAY CHAT =====
+app.post('/api/roleplay', async (req, res) => {
+  try {
+    const { message, history, profile, systemPrompt, scenarioContext } = req.body;
+    const historyText = (history || []).map((m: any) => `${m.role}: ${m.text}`).join('\n');
+    const prompt = `Contexto del escenario: ${scenarioContext || ''}\n\nConversación:\n${historyText}\n\nUsuario: ${message}\nAsistente:`;
+    const reply = await callZAI(prompt, systemPrompt);
+    const translation = profile.targetLanguage === 'German'
+      ? `🇩🇪 → 🇪🇸: ${reply.slice(0, 80)}...`
+      : profile.targetLanguage === 'French'
+        ? `🇫🇷 → 🇪🇸: ${reply.slice(0, 80)}...`
+        : `🇬🇧 → 🇪🇸: ${reply.slice(0, 80)}...`;
+    const suggestedReplies = ['¿Puedes repetir más despacio?', '¿Cómo se dice...?', 'Continúa, por favor.'];
+    res.json({ reply, translation, gentleCorrection: '', suggestedReplies });
+  } catch (error: any) {
+    console.error('Roleplay error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ===== READING =====
 app.post('/api/reading/generate', async (req, res) => {
   try {
