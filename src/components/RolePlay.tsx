@@ -1,7 +1,23 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Mic, MicOff, Volume2, VolumeX, MessageSquare, X, ChevronLeft, Play, Pause, StopCircle, Settings, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback, Component, ReactNode } from 'react';
+import { Mic, MicOff, Volume2, VolumeX, MessageSquare, X, ChevronLeft, Play, Pause, StopCircle, Settings, RefreshCw, AlertTriangle } from 'lucide-react';
 import { UserProfile } from '../types';
 import { supabase } from '../lib/supabase';
+
+class ErrorBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { hasError: boolean; error: Error | null }> {
+  constructor(props: { children: ReactNode; fallback: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
+}
 
 export interface RolePlayScenario {
   id: string;
@@ -184,6 +200,21 @@ export default function RolePlay({ profile, voiceEnabled, voice }: RolePlayProps
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [micPermission, setMicPermission] = useState<'prompt' | 'granted' | 'denied'>('prompt');
 
+  const fallback = (
+    <div className="flex-1 flex flex-col bg-white border border-stone-200 rounded-2xl shadow-xs overflow-hidden h-[calc(100vh-8rem)]">
+      <div className="flex-1 flex items-center justify-center p-6 text-center">
+        <div className="space-y-4">
+          <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto" />
+          <h3 className="text-lg font-semibold text-stone-800">Error al cargar Role Play</h3>
+          <p className="text-sm text-stone-500">Ha ocurrido un error inesperado. Intenta cambiar de pestaña y volver.</p>
+          <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm hover:bg-emerald-700">
+            Recargar aplicación
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -299,7 +330,8 @@ export default function RolePlay({ profile, voiceEnabled, voice }: RolePlayProps
 
   if (!activeScenario) {
     return (
-      <div className="flex-1 flex flex-col bg-white border border-stone-200 rounded-2xl shadow-xs overflow-hidden h-[calc(100vh-8rem)]">
+      <ErrorBoundary fallback={fallback}>
+        <div className="flex-1 flex flex-col bg-white border border-stone-200 rounded-2xl shadow-xs overflow-hidden h-[calc(100vh-8rem)]">
         <div className="bg-stone-50 border-b border-stone-200 px-6 py-4">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-full bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-800 font-bold text-xl">🎭</div>
@@ -336,11 +368,13 @@ export default function RolePlay({ profile, voiceEnabled, voice }: RolePlayProps
           </div>
         </div>
       </div>
+      </ErrorBoundary>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-white border border-stone-200 rounded-2xl shadow-xs overflow-hidden h-[calc(100vh-8rem)]">
+    <ErrorBoundary fallback={fallback}>
+      <div className="flex-1 flex flex-col bg-white border border-stone-200 rounded-2xl shadow-xs overflow-hidden h-[calc(100vh-8rem)]">
       <div className="bg-stone-50 border-b border-stone-200 px-4 py-3 flex items-center justify-between">
         <button onClick={endScenario} className="p-2 hover:bg-stone-200 rounded-xl transition-colors">
           <ChevronLeft className="w-5 h-5 text-stone-500" />
@@ -446,5 +480,6 @@ export default function RolePlay({ profile, voiceEnabled, voice }: RolePlayProps
         </button>
       </div>
     </div>
+    </ErrorBoundary>
   );
 }

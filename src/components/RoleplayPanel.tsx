@@ -50,6 +50,11 @@ const SCENARIOS: Scenario[] = [
       English: 'You arrive at the hotel, check in, and ask about breakfast and Wi-Fi.',
       French: 'Vous arrivez à l hôtel, faites le check-in et demandez les informations.',
     },
+    initialPrompt: {
+      German: 'Willkommen in unserem Hotel! Haben Sie eine Reservierung?',
+      English: 'Welcome to our hotel! Do you have a reservation?',
+      French: 'Bienvenue à notre hôtel ! Avez-vous une réservation ?',
+    },
     difficulty: 'A2 - B1',
   },
   {
@@ -64,6 +69,11 @@ const SCENARIOS: Scenario[] = [
       German: 'Frage am Schalter nach deinem Flug, Gepäck und dem Abflug-Gate.',
       English: 'Ask at the counter about your flight, luggage, and departure gate.',
       French: 'Demandez au comptoir concernant votre vol, vos bagages et la porte d embarquement.',
+    },
+    initialPrompt: {
+      German: 'Guten Tag! Hier ist der Check-in-Schalter. Wohin geht Ihre Reise heute?',
+      English: 'Good day! This is the check-in counter. Where are you flying today?',
+      French: 'Bonjour ! Voici le comptoir d enregistrement. Où voyagez-vous aujourd hui ?',
     },
     difficulty: 'A2 - B1',
   },
@@ -80,6 +90,11 @@ const SCENARIOS: Scenario[] = [
       English: 'Introduce yourself and answer professional interview questions.',
       French: 'Présentez-vous et répondez aux questions professionnelles.',
     },
+    initialPrompt: {
+      German: 'Guten Tag! Setzen Sie sich bitte. Erzählen Sie mir etwas über sich.',
+      English: 'Good day! Please have a seat. Tell me a bit about yourself.',
+      French: 'Bonjour ! Asseyez-vous, s il vous plaît. Parlez-moi de vous.',
+    },
     difficulty: 'B1 - B2',
   },
   {
@@ -94,6 +109,11 @@ const SCENARIOS: Scenario[] = [
       German: 'Frage den Verkäufer, wo man frisches Obst und Milch findet.',
       English: 'Ask the clerk where to find fresh fruit and milk.',
       French: 'Demandez au vendeur où trouver des fruits frais et du lait.',
+    },
+    initialPrompt: {
+      German: 'Hallo! Können Sie mir helfen? Ich suche frisches Obst und Milch.',
+      English: 'Hello! Can you help me? I am looking for fresh fruit and milk.',
+      French: 'Bonjour ! Pouvez-vous m aider ? Je cherche des fruits frais et du lait.',
     },
     difficulty: 'A1 - A2',
   },
