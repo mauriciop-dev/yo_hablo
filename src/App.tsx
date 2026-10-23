@@ -376,10 +376,10 @@ export default function App() {
       )}
 
       {appMode !== 'desktop' && (
-        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-stone-200 flex justify-around p-1.5 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-stone-200 flex overflow-x-auto p-1.5 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] scrollbar-hide">
           {navItems.map(([tab, label, Icon]) => (
             <button key={tab} onClick={() => setActiveTab(tab)}
-              className={`flex flex-col items-center py-1.5 px-2.5 rounded-lg text-[10px] font-medium whitespace-nowrap ${
+              className={`flex flex-col items-center py-1.5 px-3 rounded-lg text-[10px] font-medium whitespace-nowrap shrink-0 ${
                 activeTab === tab ? 'text-emerald-700 bg-emerald-50' : 'text-stone-600'
               }`}>
               <Icon className="w-4 h-4 mb-0.5" /><span>{label}</span>
