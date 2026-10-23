@@ -114,7 +114,6 @@ Rules: respond in ${profile.targetLanguage}, 80/20 rule (80% natural conversatio
   }
 });
 
-<<<<<<< HEAD
 // ===== AVATAR CHAT (3D Avatar with animations) =====
 app.post('/api/avatar', async (req, res) => {
   try {
@@ -159,7 +158,10 @@ EXAMPLE:
     res.json({ reply, suggestedReplies });
   } catch (error: any) {
     console.error('Avatar error:', error);
-=======
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ===== ROLEPLAY CHAT =====
 app.post('/api/roleplay', async (req, res) => {
   try {
@@ -176,7 +178,6 @@ app.post('/api/roleplay', async (req, res) => {
     res.json({ reply, translation, gentleCorrection: '', suggestedReplies });
   } catch (error: any) {
     console.error('Roleplay error:', error);
->>>>>>> origin/main
     res.status(500).json({ error: error.message });
   }
 });
