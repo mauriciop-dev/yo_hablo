@@ -181,23 +181,24 @@ export function useAvatar({ profile, voiceEnabled, selectedVoice, onAudioEnd }: 
     // Determinar URL del modelo
     let modelUrl = profile.avatarModelUrl;
     if (!modelUrl) {
-      // Usar Ready Player Me basado en género e idioma
+      // Usar modelos VRM reales y gratuitos (funcionando)
       const gender = profile.avatarGender || 'female';
-      const lang = profile.targetLanguage;
-      // URLs de ejemplo - en producción usarían modelos reales de Ready Player Me
-      const modelMap: Record<string, Record<string, string>> = {
-        female: {
-          German: 'https://models.readyplayer.me/674e4b5b3f8b4a001a2b3c4d.glb',
-          English: 'https://models.readyplayer.me/674e4b5b3f8b4a001a2b3c4e.glb',
-          French: 'https://models.readyplayer.me/674e4b5b3f8b4a001a2b3c4f.glb',
-        },
-        male: {
-          German: 'https://models.readyplayer.me/674e4b5b3f8b4a001a2b3c50.glb',
-          English: 'https://models.readyplayer.me/674e4b5b3f8b4a001a2b3c51.glb',
-          French: 'https://models.readyplayer.me/674e4b5b3f8b4a001a2b3c52.glb',
-        },
+      
+      // Modelos VRM de prueba reales (GitHub / VRoid Hub samples)
+      // Estos son modelos VRM 0.x/1.0 reales que funcionan
+      const modelMap: Record<string, string> = {
+        female: 'https://github.com/pixiv/three-vrm/raw/master/packages/three-vrm/examples/models/vrm/AliciaSolid.vrm',
+        male: 'https://github.com/pixiv/three-vrm/raw/master/packages/three-vrm/examples/models/vrm/AliciaSolid.vrm', // Usar mismo por ahora, luego cambiar
       };
-      modelUrl = modelMap[gender]?.[lang] || modelMap.female.German;
+      
+      // Alternativa: modelos VRM de VRoid Hub públicos
+      // Nota: AliciaSolid es female, para male usar otro
+      if (gender === 'male') {
+        // Modelo male VRM de muestra (usar uno real cuando esté disponible)
+        modelUrl = 'https://github.com/pixiv/three-vrm/raw/master/packages/three-vrm/examples/models/vrm/AliciaSolid.vrm';
+      } else {
+        modelUrl = modelMap.female;
+      }
     }
 
     try {

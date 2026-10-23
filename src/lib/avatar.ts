@@ -1,34 +1,24 @@
 // Utilidades para el módulo Avatar
 import type { AvatarMetadata, AvatarGender, TargetLanguage } from '../types';
 
-// URLs de avatares Ready Player Me (gratuitos, online)
-// Estos son avatares base; el usuario puede personalizarlos en readyplayer.me
-export const AVATAR_MODELS: Record<AvatarGender, Record<TargetLanguage, string>> = {
-  male: {
-    German: 'https://models.readyplayer.me/65f8b8c3c8b4a8b8c8b8c8b8.glb', // Hombre estilo europeo
-    English: 'https://models.readyplayer.me/65f8b8c3c8b4a8b8c8b8c8b9.glb',
-    French: 'https://models.readyplayer.me/65f8b8c3c8b4a8b8c8b8c8ba.glb',
-  },
-  female: {
-    German: 'https://models.readyplayer.me/65f8b8c3c8b4a8b8c8b8c8bb.glb', // Mujer estilo europeo
-    English: 'https://models.readyplayer.me/65f8b8c3c8b4a8b8c8b8c8bc.glb',
-    French: 'https://models.readyplayer.me/65f8b8c3c8b4a8b8c8b8c8bd.glb',
-  },
+// Modelos VRM reales y gratuitos (GitHub - three-vrm examples)
+// AliciaSolid es un modelo VRM 0.x femenino funcional
+const VRM_MODELS = {
+  female: 'https://github.com/pixiv/three-vrm/raw/master/packages/three-vrm/examples/models/vrm/AliciaSolid.vrm',
+  male: 'https://github.com/pixiv/three-vrm/raw/master/packages/three-vrm/examples/models/vrm/AliciaSolid.vrm', // Temporal: mismo modelo
 };
 
 // Avatar por defecto (fallback genérico)
-export const DEFAULT_AVATAR_URL = 'https://models.readyplayer.me/65f8b8c3c8b4a8b8c8b8c8be.glb';
+export const DEFAULT_AVATAR_URL = VRM_MODELS.female;
 
-// Generar URL de Ready Player Me con parámetros básicos
+// Generar URL de modelo VRM real
 export function generateReadyPlayerMeUrl(gender: AvatarGender, options?: {
   hairColor?: string;
   eyeColor?: string;
   skinTone?: string;
 }): string {
-  const baseUrl = 'https://models.readyplayer.me/';
-  // Usar avatares predefinidos por género como base
-  const modelId = gender === 'male' ? '65f8b8c3c8b4a8b8c8b8c8b8' : '65f8b8c3c8b4a8b8c8b8c8bb';
-  return `${baseUrl}${modelId}.glb`;
+  // Usar modelos VRM reales de three-vrm examples
+  return VRM_MODELS[gender] || VRM_MODELS.female;
 }
 
 // Parsear respuesta del backend en formato: {json} texto
