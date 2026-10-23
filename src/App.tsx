@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
   MessageSquare, BookOpen, PenTool, Volume2, Sparkles, ShieldCheck,
-  Layers, Library,
+  Layers, Library, MessageSquareHeart,
 } from 'lucide-react';
 import { UserProfile } from './types';
 import { supabase } from './lib/supabase';
 import { useVoice, VoiceSelection } from './hooks/useVoice';
 import LoginScreen from './components/LoginScreen';
 import TutorChat from './components/TutorChat';
+import AvatarChat from './components/AvatarChat';
 import ReadingExercise from './components/ReadingExercise';
 import WritingExercise from './components/WritingExercise';
 import AdminPanel from './components/AdminPanel';
@@ -32,7 +33,7 @@ const PRESET_PROFILES: UserProfile[] = [
   { id: 'guest', name: 'Invitado', targetLanguage: 'German', level: 'A1', nativeLanguage: 'Spanish', avatarColor: 'bg-amber-600', isGuest: true },
 ];
 
-type Tab = 'tutor' | 'reading' | 'writing' | 'lessons' | 'vocabulary' | 'admin';
+type Tab = 'tutor' | 'avatar' | 'reading' | 'writing' | 'lessons' | 'vocabulary' | 'admin';
 type AuthUser = { id: string; email: string; name: string; role: string; accessToken?: string };
 
 async function fetchUserRole(authUser: AuthUser): Promise<string> {
@@ -229,9 +230,10 @@ export default function App() {
   const navItems: [Tab, string, any][] = [
     ['tutor', 'Conversación', MessageSquare],
     ['lessons', 'Lecciones', Layers],
-    ['vocabulary', 'Vocabuario', Library],
+    ['vocabulary', 'Vocabulario', Library],
     ['reading', 'Lectura', BookOpen],
     ['writing', 'Escritura', PenTool],
+    ['avatar', 'Avatar', MessageSquareHeart],
     ...(authUser.role === 'admin' ? [['admin', 'Admin', ShieldCheck] as [Tab, string, any]] : []),
   ];
 
@@ -310,6 +312,9 @@ export default function App() {
             {activeTab === 'tutor' && (
               <TutorChat profile={profile} voiceEnabled={voiceEnabled} voice={voice} activeLesson={activeLesson} onLessonComplete={completeLesson} />
             )}
+            {activeTab === 'avatar' && (
+              <AvatarChat profile={profile} voiceEnabled={voiceEnabled} voice={voice} selectedTutorVoice={selectedTutorVoice} onProfileChange={handleProfileChange} activeLesson={activeLesson} onLessonComplete={completeLesson} />
+            )}
             {activeTab === 'lessons' && (
               <LessonsPanel profile={profile} completedLessons={completedLessons} onStartLesson={handleStartLesson} />
             )}
@@ -334,6 +339,9 @@ export default function App() {
         <main className="flex-1 w-full max-w-xl mx-auto p-4 pb-24">
           {activeTab === 'tutor' && (
             <TutorChat profile={profile} voiceEnabled={voiceEnabled} voice={voice} activeLesson={activeLesson} onLessonComplete={completeLesson} />
+          )}
+          {activeTab === 'avatar' && (
+            <AvatarChat profile={profile} voiceEnabled={voiceEnabled} voice={voice} selectedTutorVoice={selectedTutorVoice} onProfileChange={handleProfileChange} activeLesson={activeLesson} onLessonComplete={completeLesson} />
           )}
           {activeTab === 'lessons' && (
             <LessonsPanel profile={profile} completedLessons={completedLessons} onStartLesson={handleStartLesson} />

@@ -114,6 +114,54 @@ Rules: respond in ${profile.targetLanguage}, 80/20 rule (80% natural conversatio
   }
 });
 
+// ===== AVATAR CHAT (3D Avatar with animations) =====
+app.post('/api/avatar', async (req, res) => {
+  try {
+    const { message, history, profile } = req.body;
+    const avatarGender = profile.avatarGender || 'female';
+    const systemPrompt = `You are Aura, an encouraging and mildly funny ${profile.targetLanguage} tutor.
+Your student: ${profile.name}, level ${profile.level} (${profile.nativeLanguage} native).
+Your avatar is ${avatarGender === 'male' ? 'a man' : 'a woman'}.
+
+STRICT RULES:
+1. ALWAYS start your response with a single-line JSON containing animation metadata
+2. Format: {"expr":"<EMOTION>","gesture":"<GESTURE>","gaze":"<GAZE>","prosody":"<PROSODY>","phonetics_focus":"<PHONETICS_FOCUS>","pause_ms":<MS>} <TEXT_FOR_AUDIO>
+3. Maximum 2-3 sentences per response (latency < 1s)
+4. Tone: Native tutor, informal, real colloquial expressions
+5. 80% natural conversation, 20% gentle fluid correction
+6. Value communicative intent before correcting
+
+ALLOWED VALUES:
+- expr: HAPPY, NEUTRAL, THINKING, EMPATHETIC, CONFUSED, PROUD
+- gesture: NOD, DOUBLE_NOD, TILT_HEAD, SHRUG, WAVE, POINT_PRACTICE, NONE
+- gaze: DIRECT, THINK_UP, DOWN_SOFT
+- prosody: FAST_ENCOURAGING, SLOW_EXPLANATORY, WARM_CASUAL, EMPHASIS_TARGET
+- phonetics_focus: GERMAN_UMLAUT, GERMAN_CH, ENGLISH_TH, ENGLISH_R, STANDARD
+- pause_ms: integer (0, 200, 400, etc.)
+
+EXAMPLE:
+{"expr":"EMPATHETIC","gesture":"TILT_HEAD","gaze":"DIRECT","prosody":"SLOW_EXPLANATORY","phonetics_focus":"ENGLISH_TH","pause_ms":200} Great try! Remember, for yesterday we say "I went to the park and saw a big dog." What kind of dog was it?`;
+    const historyText = (history || []).map((m: any) => `${m.role}: ${m.text}`).join('\n');
+    const prompt = `Conversation so far:\n${historyText}\n\nStudent: ${message}\nAura:`;
+    const reply = await callZAI(prompt, systemPrompt);
+    
+    // Generate suggested replies based on language
+    let suggestedReplies: string[] = [];
+    if (profile.targetLanguage === 'German') {
+      suggestedReplies = ['Das ist interessant!', 'Kannst du das wiederholen?', 'Wie sagt man das auf Deutsch?'];
+    } else if (profile.targetLanguage === 'French') {
+      suggestedReplies = ['C\'est intéressant !', 'Peux-tu répéter ?', 'Comment dit-on cela en français ?'];
+    } else {
+      suggestedReplies = ['That is interesting, tell me more!', 'Can you repeat that please?', 'How do you say this in English?'];
+    }
+    
+    res.json({ reply, suggestedReplies });
+  } catch (error: any) {
+    console.error('Avatar error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ===== READING =====
 app.post('/api/reading/generate', async (req, res) => {
   try {
