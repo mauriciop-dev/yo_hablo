@@ -730,13 +730,21 @@ app.put('/api/user/onboarding', async (req, res) => {
   }
 });
 
-// Serve static files in production
-const distPath = path.join(__dirname, 'dist');
-app.use(express.static(distPath));
-
-app.get('*', (req, res) => {
-  res.sendFile(path.join(distPath, 'index.html'));
-});
+// Serve static files in production or Vite middleware in development
+if (process.env.NODE_ENV !== 'production') {
+  const { createServer: createViteServer } = await import('vite');
+  const vite = await createViteServer({
+    server: { middlewareMode: true },
+    appType: 'spa',
+  });
+  app.use(vite.middlewares);
+} else {
+  const distPath = path.join(__dirname, 'dist');
+  app.use(express.static(distPath));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
 
 if (process.env.VERCEL !== '1') {
   const server = http.createServer(app);
