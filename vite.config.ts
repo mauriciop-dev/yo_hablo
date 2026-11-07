@@ -10,6 +10,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icons/*.png', 'icons/*.svg'],
+      injectRegister: 'script', // 'auto' | 'script' | 'script-defer' | 'inline' | 'none' - we handle manifest in index.html
       manifest: {
         name: 'Yo Hablo - Aprende idiomas con voz',
         short_name: 'Yo Hablo',
