@@ -36,10 +36,13 @@ type Tab = 'tutor' | 'reading' | 'writing' | 'lessons' | 'vocabulary' | 'admin';
 type AuthUser = { id: string; email: string; name: string; role: string; accessToken?: string };
 
 async function fetchUserRole(authUser: AuthUser): Promise<string> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
   try {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authUser.accessToken}` },
+      signal: controller.signal,
     });
     if (res.ok) {
       const data = await res.json();
@@ -47,6 +50,8 @@ async function fetchUserRole(authUser: AuthUser): Promise<string> {
     }
   } catch (e) {
     console.warn('Register failed, falling back to direct query', e);
+  } finally {
+    clearTimeout(timeoutId);
   }
   const { data } = await supabase.from('users').select('role').eq('id', authUser.id).single();
   return data?.role || 'user';
@@ -96,9 +101,12 @@ export default function App() {
   const voice = useVoice(profile.targetLanguage, profile.level, selectedTutorVoice);
 
   const loadOnboarding = async (auth: AuthUser) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
     try {
       const res = await fetch('/api/user/onboarding', {
         headers: { Authorization: `Bearer ${auth.accessToken}` },
+        signal: controller.signal,
       });
       if (res.ok) {
         const data = await res.json();
@@ -123,42 +131,63 @@ export default function App() {
       }
     } catch (e) {
       console.warn('load onboarding failed', e);
+    } finally {
+      clearTimeout(timeoutId);
     }
   };
 
   useEffect(() => {
+    let mounted = true;
     const applyUser = async (session: any) => {
+      if (!mounted) return;
       if (!session?.user) {
         setAuthUser(null);
+        setCheckingAuth(false);
         return;
       }
-      const authUser: AuthUser = {
-        id: session.user.id,
-        email: session.user.email || '',
-        name: session.user.user_metadata?.full_name || session.user.email || 'Usuario',
-        role: 'user',
-        accessToken: session.access_token,
-      };
-      const role = await fetchUserRole(authUser);
-      authUser.role = role;
-      setAuthUser(authUser);
-      const savedProfile = localStorage.getItem(`yo-hablo-profile-${authUser.id}`);
-      setProfile(savedProfile ? { ...getProfileFromAuth(authUser), ...JSON.parse(savedProfile) } : getProfileFromAuth(authUser));
-      const savedLessons = localStorage.getItem(`yo-hablo-completed-lessons-${authUser.id}`);
-      setCompletedLessons(new Set(savedLessons ? JSON.parse(savedLessons) : []));
-      await loadOnboarding(authUser);
+      try {
+        const authUser: AuthUser = {
+          id: session.user.id,
+          email: session.user.email || '',
+          name: session.user.user_metadata?.full_name || session.user.email || 'Usuario',
+          role: 'user',
+          accessToken: session.access_token,
+        };
+        const role = await fetchUserRole(authUser);
+        if (!mounted) return;
+        authUser.role = role;
+        setAuthUser(authUser);
+        const savedProfile = localStorage.getItem(`yo-hablo-profile-${authUser.id}`);
+        setProfile(savedProfile ? { ...getProfileFromAuth(authUser), ...JSON.parse(savedProfile) } : getProfileFromAuth(authUser));
+        const savedLessons = localStorage.getItem(`yo-hablo-completed-lessons-${authUser.id}`);
+        setCompletedLessons(new Set(savedLessons ? JSON.parse(savedLessons) : []));
+        await loadOnboarding(authUser);
+      } catch (e) {
+        console.error('Auth applyUser error:', e);
+        if (mounted) setAuthUser(null);
+      } finally {
+        if (mounted) setCheckingAuth(false);
+      }
     };
+
+    // Timeout safeguard: force checkingAuth=false after 10s
+    const timeoutId = setTimeout(() => {
+      if (mounted) setCheckingAuth(false);
+    }, 10000);
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       await applyUser(session);
-      setCheckingAuth(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       await applyUser(session);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      clearTimeout(timeoutId);
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
