@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
   MessageSquare, BookOpen, PenTool, Volume2, Sparkles, ShieldCheck,
-  Layers, Library,
+  Layers, Library, Mic, MessageSquareHeart,
 } from 'lucide-react';
 import { UserProfile } from './types';
 import { supabase } from './lib/supabase';
 import { useVoice, VoiceSelection } from './hooks/useVoice';
 import LoginScreen from './components/LoginScreen';
 import TutorChat from './components/TutorChat';
+import AvatarChat from './components/AvatarChat';
 import ReadingExercise from './components/ReadingExercise';
 import WritingExercise from './components/WritingExercise';
 import AdminPanel from './components/AdminPanel';
@@ -17,6 +18,7 @@ import VocabularyCards from './components/VocabularyCards';
 import ProgressAchievementsModal from './components/ProgressAchievementsModal';
 import OnboardingWizard from './components/OnboardingWizard';
 import InstallPwaBanner from './components/InstallPwaBanner';
+import RolePlay from './components/RolePlay';
 import { useAppMode } from './hooks/useAppMode';
 import { useInstallPrompt } from './hooks/useInstallPrompt';
 import { schedulePlanReminder } from './lib/notifications';
@@ -32,7 +34,7 @@ const PRESET_PROFILES: UserProfile[] = [
   { id: 'guest', name: 'Invitado', targetLanguage: 'German', level: 'A1', nativeLanguage: 'Spanish', avatarColor: 'bg-amber-600', isGuest: true },
 ];
 
-type Tab = 'tutor' | 'reading' | 'writing' | 'lessons' | 'vocabulary' | 'admin';
+type Tab = 'tutor' | 'roleplay' | 'avatar' | 'reading' | 'writing' | 'lessons' | 'vocabulary' | 'admin';
 type AuthUser = { id: string; email: string; name: string; role: string; accessToken?: string };
 
 async function fetchUserRole(authUser: AuthUser): Promise<string> {
@@ -257,10 +259,12 @@ export default function App() {
 
   const navItems: [Tab, string, any][] = [
     ['tutor', 'Conversación', MessageSquare],
+    ['roleplay', 'Role Play', Mic],
     ['lessons', 'Lecciones', Layers],
-    ['vocabulary', 'Vocabuario', Library],
+    ['vocabulary', 'Vocabulario', Library],
     ['reading', 'Lectura', BookOpen],
     ['writing', 'Escritura', PenTool],
+    ['avatar', 'Avatar', MessageSquareHeart],
     ...(authUser.role === 'admin' ? [['admin', 'Admin', ShieldCheck] as [Tab, string, any]] : []),
   ];
 
@@ -339,6 +343,12 @@ export default function App() {
             {activeTab === 'tutor' && (
               <TutorChat profile={profile} voiceEnabled={voiceEnabled} voice={voice} activeLesson={activeLesson} onLessonComplete={completeLesson} />
             )}
+            {activeTab === 'roleplay' && (
+              <RolePlay profile={profile} voiceEnabled={voiceEnabled} voice={voice} />
+            )}
+            {activeTab === 'avatar' && (
+              <AvatarChat profile={profile} voiceEnabled={voiceEnabled} voice={voice} selectedTutorVoice={selectedTutorVoice} onProfileChange={handleProfileChange} activeLesson={activeLesson} onLessonComplete={completeLesson} />
+            )}
             {activeTab === 'lessons' && (
               <LessonsPanel profile={profile} completedLessons={completedLessons} onStartLesson={handleStartLesson} />
             )}
@@ -363,6 +373,12 @@ export default function App() {
         <main className="flex-1 w-full max-w-xl mx-auto p-4 pb-24">
           {activeTab === 'tutor' && (
             <TutorChat profile={profile} voiceEnabled={voiceEnabled} voice={voice} activeLesson={activeLesson} onLessonComplete={completeLesson} />
+          )}
+          {activeTab === 'roleplay' && (
+            <RolePlay profile={profile} voiceEnabled={voiceEnabled} voice={voice} />
+          )}
+          {activeTab === 'avatar' && (
+            <AvatarChat profile={profile} voiceEnabled={voiceEnabled} voice={voice} selectedTutorVoice={selectedTutorVoice} onProfileChange={handleProfileChange} activeLesson={activeLesson} onLessonComplete={completeLesson} />
           )}
           {activeTab === 'lessons' && (
             <LessonsPanel profile={profile} completedLessons={completedLessons} onStartLesson={handleStartLesson} />
@@ -389,10 +405,10 @@ export default function App() {
       )}
 
       {appMode !== 'desktop' && (
-        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-stone-200 flex justify-around p-1.5 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-stone-200 flex overflow-x-auto p-1.5 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] scrollbar-hide">
           {navItems.map(([tab, label, Icon]) => (
             <button key={tab} onClick={() => setActiveTab(tab)}
-              className={`flex flex-col items-center py-1.5 px-2.5 rounded-lg text-[10px] font-medium whitespace-nowrap ${
+              className={`flex flex-col items-center py-1.5 px-3 rounded-lg text-[10px] font-medium whitespace-nowrap shrink-0 ${
                 activeTab === tab ? 'text-emerald-700 bg-emerald-50' : 'text-stone-600'
               }`}>
               <Icon className="w-4 h-4 mb-0.5" /><span>{label}</span>
